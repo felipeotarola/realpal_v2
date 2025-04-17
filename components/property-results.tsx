@@ -7,11 +7,12 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { PropertyData } from "@/actions/crawler"
 import { ImageGallery } from "./image-gallery"
-import { Heart, Share2, ExternalLink, Info, Home, Database, Loader2, Trash2 } from "lucide-react"
+import { ExternalLink, Info, Home, Database, Trash2, ChevronRight, BookmarkIcon, CheckIcon, Share2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useAuth } from "@/contexts/auth-context"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
+import { ComparisonButton } from "@/components/comparison-button"
 
 interface PropertyResultsProps {
   results: {
@@ -58,7 +59,7 @@ export function PropertyResults({ results }: PropertyResultsProps) {
                   rooms: pendingProperty.property.rooms,
                   location: pendingProperty.property.location,
                   description: pendingProperty.property.description,
-                  features: pendingProperty.property.features,
+                  features: pendingProperty.images,
                   images: pendingProperty.images,
                   url: pendingProperty.property.url,
                   agent: pendingProperty.property.agent,
@@ -226,6 +227,19 @@ export function PropertyResults({ results }: PropertyResultsProps) {
     }
   }
 
+  const viewPropertyDetails = (property: PropertyData) => {
+    // Implement your logic to view property details here
+    console.log("Viewing details for property:", property)
+    // For example, you can navigate to a details page using router.push
+    // router.push(`/property/${property.id}`);
+  }
+
+  const handleDelete = (propertyId: string) => {
+    // Implement your logic to delete the property here
+    console.log("Deleting property with ID:", propertyId)
+    // For example, you can call an API to delete the property and then update the UI
+  }
+
   return (
     <div className="space-y-6">
       {metadata.note && (
@@ -318,35 +332,57 @@ export function PropertyResults({ results }: PropertyResultsProps) {
           )}
         </CardContent>
 
-        <CardFooter className="flex justify-between border-t p-4">
-          <Button
-            variant={saved ? "destructive" : "outline"}
-            onClick={handleSave}
-            disabled={isSaving}
-            className={saved ? "bg-red-100 hover:bg-red-200 text-red-700 border-red-200" : ""}
-          >
-            {isSaving ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                {saved ? "Tar bort..." : "Sparar..."}
-              </>
-            ) : (
-              <>
-                {saved ? <Trash2 className="h-4 w-4 mr-2" /> : <Heart className="h-4 w-4 mr-2" />}
-                {saved ? "Ta bort från sparade" : "Spara fastighet"}
-              </>
-            )}
-          </Button>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleShare}>
+        <CardFooter className="pt-4 border-t flex flex-col space-y-3">
+          {/* Add the Save button here */}
+          <div className="flex justify-between w-full">
+            <Button
+              variant={saved ? "outline" : "default"}
+              size="sm"
+              className="w-[48%]"
+              onClick={handleSave}
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                "Sparar..."
+              ) : saved ? (
+                <>
+                  <CheckIcon className="h-4 w-4 mr-2" />
+                  Sparad
+                </>
+              ) : (
+                <>
+                  <BookmarkIcon className="h-4 w-4 mr-2" />
+                  Spara fastighet
+                </>
+              )}
+            </Button>
+            <Button variant="outline" size="sm" className="w-[48%]" onClick={handleShare}>
               <Share2 className="h-4 w-4 mr-2" />
               Dela
             </Button>
-            <Button variant="outline" asChild>
+          </div>
+          <div className="flex justify-between w-full">
+            <Button variant="outline" size="sm" className="w-[48%]" onClick={() => viewPropertyDetails(property)}>
+              <ChevronRight className="h-4 w-4 mr-2" />
+              Visa detaljer
+            </Button>
+            <Button variant="outline" size="sm" className="w-[48%]" asChild>
               <a href={property.url} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="h-4 w-4 mr-2" />
                 Visa original
               </a>
+            </Button>
+          </div>
+          <div className="flex justify-between w-full">
+            <ComparisonButton property={property} className="w-[48%]" />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-red-500 hover:text-red-700 hover:bg-red-50 w-[48%]"
+              onClick={() => handleDelete(property.id)}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Ta bort
             </Button>
           </div>
         </CardFooter>

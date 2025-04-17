@@ -46,16 +46,22 @@ export function NavBar() {
               <Link href="/saved" className="text-gray-700 hover:text-gray-900">
                 Sparade Fastigheter
               </Link>
-              <DropdownMenu>
+              <Link href="/saved-comparisons" className="text-gray-700 hover:text-gray-900">
+                Jämförelser
+              </Link>
+              <DropdownMenu onOpenChange={(open) => console.log("Dropdown open state:", open)}>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                    <Avatar className="h-8 w-8">
+                  <Button
+                    variant="ghost"
+                    className="relative h-10 w-10 rounded-full border border-gray-200 hover:bg-gray-100"
+                  >
+                    <Avatar className="h-9 w-9">
                       <AvatarImage src="/placeholder.svg" alt={user.email || ""} />
                       <AvatarFallback>{user.email?.charAt(0).toUpperCase()}</AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuContent className="w-56 z-50" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium leading-none">{user.email}</p>
@@ -63,13 +69,13 @@ export function NavBar() {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href="/profile">
+                    <Link href="/profile" className="flex items-center cursor-pointer">
                       <User className="mr-2 h-4 w-4" />
                       <span>Profil</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => signOut()}>
+                  <DropdownMenuItem onClick={() => signOut()} className="cursor-pointer">
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Logga ut</span>
                   </DropdownMenuItem>
@@ -99,6 +105,9 @@ export function NavBar() {
                 <>
                   <Link href="/saved" className="text-gray-700 hover:text-gray-900" onClick={toggleMenu}>
                     Sparade Fastigheter
+                  </Link>
+                  <Link href="/saved-comparisons" className="text-gray-700 hover:text-gray-900" onClick={toggleMenu}>
+                    Jämförelser
                   </Link>
                   <Link href="/profile" className="text-gray-700 hover:text-gray-900" onClick={toggleMenu}>
                     Profil

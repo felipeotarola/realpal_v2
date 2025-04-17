@@ -35,17 +35,20 @@ export default function ProfilePage() {
       if (!user) return
 
       try {
+        console.log("Loading profile for user:", user.id)
         const { data, error } = await supabase.from("profiles").select("*").eq("id", user.id).single()
 
         if (error) {
+          console.error("Error loading profile:", error)
           throw error
         }
 
+        console.log("Profile loaded:", data)
         setProfile(data)
         setUsername(data.username || "")
         setFullName(data.full_name || "")
       } catch (error) {
-        console.error("Fel vid laddning av profil:", error)
+        console.error("Error loading profile:", error)
       } finally {
         setIsLoading(false)
       }

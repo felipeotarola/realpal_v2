@@ -3,8 +3,9 @@ import "./globals.css"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import { AuthProvider } from "@/contexts/auth-context"
+import { ComparisonProvider } from "@/contexts/comparison-context"
 import { NavBar } from "@/components/nav-bar"
-import { Toaster } from "@/components/ui/toaster"
+import { ComparisonIndicator } from "@/components/comparison-indicator"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -23,14 +24,13 @@ export default function RootLayout({
     <html lang="sv">
       <body className={inter.className}>
         <AuthProvider>
-          <NavBar />
-          {children}
-          <Toaster />
+          <ComparisonProvider>
+            <NavBar />
+            {children}
+            <ComparisonIndicator />
+          </ComparisonProvider>
         </AuthProvider>
       </body>
     </html>
   )
 }
-
-
-import './globals.css'

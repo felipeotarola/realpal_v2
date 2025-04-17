@@ -5,25 +5,14 @@ import { useAuth } from "@/contexts/auth-context"
 import { supabase } from "@/lib/supabase"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import {
-  Loader2,
-  Home,
-  Trash2,
-  ExternalLink,
-  ChevronRight,
-  MapPin,
-  Star,
-  Brain,
-  ContrastIcon as CompareIcon,
-} from "lucide-react"
+import { Loader2, Home, Trash2, ExternalLink, ChevronRight, MapPin, Star, Brain } from "lucide-react"
 import { ProtectedRoute } from "@/components/protected-route"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { useRouter } from "next/navigation"
 import { Progress } from "@/components/ui/progress"
-import { ComparisonSelector } from "@/components/comparison-selector"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ComparisonButton } from "@/components/comparison-button"
 
 interface AttributeScore {
   name: string
@@ -66,26 +55,13 @@ interface SavedProperty {
   analysis?: PropertyAnalysis | null
 }
 
-interface PropertyComparison {
-  id: string
-  title: string
-  description: string
-  created_at: string
-  updated_at: string
-  property_ids: string[]
-  ai_analysis: any
-}
-
 export default function SavedPropertiesPage() {
   const { user } = useAuth()
   const [savedProperties, setSavedProperties] = useState<SavedProperty[]>([])
-  const [comparisons, setComparisons] = useState<PropertyComparison[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [isComparisonsLoading, setIsComparisonsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedFeatures, setSelectedFeatures] = useState<string[] | null>(null)
   const [dialogTitle, setDialogTitle] = useState("")
-  const [activeTab, setActiveTab] = useState("properties")
   const router = useRouter()
 
   useEffect(() => {
@@ -134,31 +110,7 @@ export default function SavedPropertiesPage() {
       }
     }
 
-    async function loadComparisons() {
-      if (!user) return
-
-      try {
-        setIsComparisonsLoading(true)
-        const { data, error } = await supabase
-          .from("property_comparisons")
-          .select("*")
-          .eq("user_id", user.id)
-          .order("updated_at", { ascending: false })
-
-        if (error) {
-          throw error
-        }
-
-        setComparisons(data || [])
-      } catch (error: any) {
-        console.error("Fel vid laddning av jämförelser:", error)
-      } finally {
-        setIsComparisonsLoading(false)
-      }
-    }
-
     loadSavedProperties()
-    loadComparisons()
   }, [user])
 
   const handleDelete = async (id: string) => {
@@ -177,25 +129,6 @@ export default function SavedPropertiesPage() {
     } catch (error: any) {
       console.error("Fel vid borttagning av fastighet:", error)
       alert("Kunde inte ta bort fastighet: " + error.message)
-    }
-  }
-
-  const handleDeleteComparison = async (id: string) => {
-    if (!confirm("Är du säker på att du vill ta bort denna jämförelse?")) {
-      return
-    }
-
-    try {
-      const { error } = await supabase.from("property_comparisons").delete().eq("id", id).eq("user_id", user?.id)
-
-      if (error) {
-        throw error
-      }
-
-      setComparisons(comparisons.filter((comparison) => comparison.id !== id))
-    } catch (error: any) {
-      console.error("Fel vid borttagning av jämförelse:", error)
-      alert("Kunde inte ta bort jämförelse: " + error.message)
     }
   }
 
@@ -233,256 +166,174 @@ export default function SavedPropertiesPage() {
     return "bg-red-100"
   }
 
-  // Funktion för att formatera datum
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString("sv-SE", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-  }
-
   return (
     <ProtectedRoute>
       <div className="container mx-auto py-10 px-4">
         <h1 className="text-3xl font-bold mb-2">Sparade Fastigheter</h1>
         <p className="text-gray-500 mb-8">Fastigheter du har sparat för senare</p>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
-          <TabsList className="grid grid-cols-2 w-full max-w-md">
-            <TabsTrigger value="properties">Fastigheter</TabsTrigger>
-            <TabsTrigger value="comparisons">Jämförelser</TabsTrigger>
-          </TabsList>
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+          </div>
+        ) : error ? (
+          <div className="p-4 bg-red-50 text-red-600 rounded-md">{error}</div>
+        ) : savedProperties.length === 0 ? (
+          <div className="text-center py-12 bg-gray-50 rounded-lg">
+            <Home className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h2 className="text-xl font-medium mb-2">Inga sparade fastigheter ännu</h2>
+            <p className="text-gray-500 mb-4">Börja bläddra och spara fastigheter du är intresserad av</p>
+            <Link href="/">
+              <Button>Bläddra bland fastigheter</Button>
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {savedProperties.map((property) => (
+              <Card key={property.id} className="overflow-hidden flex flex-col h-full">
+                {/* Bild */}
+                <div
+                  className="relative aspect-video bg-gray-100 cursor-pointer"
+                  onClick={() => viewPropertyDetails(property)}
+                >
+                  {property.images && property.images.length > 0 ? (
+                    <img
+                      src={property.images[0] || "/placeholder.svg"}
+                      alt={property.title}
+                      className="object-cover w-full h-full"
+                      onError={(e) => {
+                        ;(e.target as HTMLImageElement).src = `/placeholder.svg?height=200&width=400&query=property`
+                      }}
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full bg-gray-200">
+                      <Home className="h-8 w-8 text-gray-400" />
+                    </div>
+                  )}
 
-          <TabsContent value="properties">
-            {isLoading ? (
-              <div className="flex justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-              </div>
-            ) : error ? (
-              <div className="p-4 bg-red-50 text-red-600 rounded-md">{error}</div>
-            ) : savedProperties.length === 0 ? (
-              <div className="text-center py-12 bg-gray-50 rounded-lg">
-                <Home className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h2 className="text-xl font-medium mb-2">Inga sparade fastigheter ännu</h2>
-                <p className="text-gray-500 mb-4">Börja bläddra och spara fastigheter du är intresserad av</p>
-                <Link href="/">
-                  <Button>Bläddra bland fastigheter</Button>
-                </Link>
-              </div>
-            ) : (
-              <>
-                {/* Jämförelseväljare */}
-                <ComparisonSelector properties={savedProperties} userId={user?.id || ""} />
+                  {/* Visa totalpoäng om tillgängligt */}
+                  {property.analysis && property.analysis.total_score && (
+                    <div
+                      className={`absolute top-2 right-2 ${getScoreBackgroundColor(property.analysis.total_score)} rounded-full p-1 px-2 font-bold text-sm flex items-center`}
+                    >
+                      <Star className="h-3.5 w-3.5 mr-1 text-yellow-500 fill-yellow-500" />
+                      <span className={getScoreColor(property.analysis.total_score)}>
+                        {property.analysis.total_score.toFixed(1)}
+                      </span>
+                    </div>
+                  )}
 
-                {/* Lista med fastigheter */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {savedProperties.map((property) => (
-                    <Card key={property.id} className="overflow-hidden flex flex-col h-full">
-                      {/* Bild */}
-                      <div
-                        className="relative aspect-video bg-gray-100 cursor-pointer"
-                        onClick={() => viewPropertyDetails(property)}
-                      >
-                        {property.images && property.images.length > 0 ? (
-                          <img
-                            src={property.images[0] || "/placeholder.svg"}
-                            alt={property.title}
-                            className="object-cover w-full h-full"
-                            onError={(e) => {
-                              ;(e.target as HTMLImageElement).src =
-                                `/placeholder.svg?height=200&width=400&query=property`
-                            }}
-                          />
-                        ) : (
-                          <div className="flex items-center justify-center h-full bg-gray-200">
-                            <Home className="h-8 w-8 text-gray-400" />
-                          </div>
-                        )}
-
-                        {/* Visa totalpoäng om tillgängligt */}
-                        {property.analysis && property.analysis.total_score && (
-                          <div
-                            className={`absolute top-2 right-2 ${getScoreBackgroundColor(property.analysis.total_score)} rounded-full p-1 px-2 font-bold text-sm flex items-center`}
-                          >
-                            <Star className="h-3.5 w-3.5 mr-1 text-yellow-500 fill-yellow-500" />
-                            <span className={getScoreColor(property.analysis.total_score)}>
-                              {property.analysis.total_score.toFixed(1)}
-                            </span>
-                          </div>
-                        )}
-
-                        {/* Visa analysikon om fastigheten inte är analyserad */}
-                        {!property.is_analyzed && (
-                          <div className="absolute top-2 right-2 bg-gray-100 rounded-full p-1 px-2 text-sm flex items-center">
-                            <Brain className="h-3.5 w-3.5 text-gray-500" />
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Rubrik och plats */}
-                      <CardHeader className="pb-2 cursor-pointer" onClick={() => viewPropertyDetails(property)}>
-                        <CardTitle className="text-lg line-clamp-1">{property.title}</CardTitle>
-                        <CardDescription className="flex items-center text-sm text-gray-500">
-                          <MapPin className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
-                          <span className="line-clamp-1">{property.location}</span>
-                        </CardDescription>
-                      </CardHeader>
-
-                      {/* Huvudinnehåll */}
-                      <CardContent className="pb-2 flex-grow space-y-4">
-                        {/* Pris och storlek */}
-                        <div className="flex justify-between items-center">
-                          <div className="font-bold text-lg">{formatCurrency(property.price)}</div>
-                          <div className="text-sm bg-gray-100 px-2 py-1 rounded-md">
-                            {property.size} • {property.rooms}
-                          </div>
-                        </div>
-
-                        {/* AI-analys och sammanfattning */}
-                        {property.analysis && property.analysis.analysis_summary && (
-                          <div className="bg-blue-50 p-3 rounded-md">
-                            <p className="text-sm text-gray-700">{property.analysis.analysis_summary}</p>
-                          </div>
-                        )}
-
-                        {/* Visa topp 3 attribut om tillgängligt */}
-                        {property.analysis &&
-                          property.analysis.attribute_scores &&
-                          property.analysis.attribute_scores.length > 0 && (
-                            <div className="space-y-2">
-                              {property.analysis.attribute_scores
-                                .sort((a, b) => b.score - a.score)
-                                .slice(0, 3)
-                                .map((attr, index) => (
-                                  <div key={index} className="flex items-center justify-between text-xs">
-                                    <span className="capitalize">{attr.name}</span>
-                                    <div className="flex items-center gap-2 w-1/2">
-                                      <Progress value={attr.score * 10} className="h-1.5" />
-                                      <span className={getScoreColor(attr.score)}>{attr.score}</span>
-                                    </div>
-                                  </div>
-                                ))}
-                            </div>
-                          )}
-
-                        {/* Egenskaper/badges */}
-                        {property.features && property.features.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5">
-                            {property.features.slice(0, 3).map((feature, index) => (
-                              <Badge key={index} variant="secondary" className="text-xs">
-                                {feature}
-                              </Badge>
-                            ))}
-                            {property.features.length > 3 && (
-                              <Badge
-                                variant="outline"
-                                className="text-xs cursor-pointer hover:bg-gray-100"
-                                onClick={() => showAllFeatures(property.features, property.title)}
-                              >
-                                +{property.features.length - 3} mer
-                              </Badge>
-                            )}
-                          </div>
-                        )}
-                      </CardContent>
-
-                      {/* Knappar */}
-                      <CardFooter className="pt-4 border-t flex flex-col space-y-3">
-                        <div className="flex justify-between w-full">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-[48%]"
-                            onClick={() => viewPropertyDetails(property)}
-                          >
-                            <ChevronRight className="h-4 w-4 mr-2" />
-                            Visa detaljer
-                          </Button>
-                          <Button variant="outline" size="sm" className="w-[48%]" asChild>
-                            <a href={property.url} target="_blank" rel="noopener noreferrer">
-                              <ExternalLink className="h-4 w-4 mr-2" />
-                              Visa original
-                            </a>
-                          </Button>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50 w-full"
-                          onClick={() => handleDelete(property.id)}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Ta bort
-                        </Button>
-                      </CardFooter>
-                    </Card>
-                  ))}
+                  {/* Visa analysikon om fastigheten inte är analyserad */}
+                  {!property.is_analyzed && (
+                    <div className="absolute top-2 right-2 bg-gray-100 rounded-full p-1 px-2 text-sm flex items-center">
+                      <Brain className="h-3.5 w-3.5 text-gray-500" />
+                    </div>
+                  )}
                 </div>
-              </>
-            )}
-          </TabsContent>
 
-          <TabsContent value="comparisons">
-            {isComparisonsLoading ? (
-              <div className="flex justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-              </div>
-            ) : comparisons.length === 0 ? (
-              <div className="text-center py-12 bg-gray-50 rounded-lg">
-                <CompareIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h2 className="text-xl font-medium mb-2">Inga jämförelser ännu</h2>
-                <p className="text-gray-500 mb-4">Välj fastigheter att jämföra från fliken "Fastigheter"</p>
-                <Button onClick={() => setActiveTab("properties")}>Gå till fastigheter</Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {comparisons.map((comparison) => (
-                  <Card key={comparison.id} className="overflow-hidden">
-                    <CardHeader>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <CardTitle>{comparison.title}</CardTitle>
-                          <CardDescription>
-                            Skapad {formatDate(comparison.created_at)}
-                            {comparison.created_at !== comparison.updated_at &&
-                              ` • Uppdaterad ${formatDate(comparison.updated_at)}`}
-                          </CardDescription>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => handleDeleteComparison(comparison.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                {/* Rubrik och plats */}
+                <CardHeader className="pb-2 cursor-pointer" onClick={() => viewPropertyDetails(property)}>
+                  <CardTitle className="text-lg line-clamp-1">{property.title}</CardTitle>
+                  <CardDescription className="flex items-center text-sm text-gray-500">
+                    <MapPin className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
+                    <span className="line-clamp-1">{property.location}</span>
+                  </CardDescription>
+                </CardHeader>
+
+                {/* Huvudinnehåll */}
+                <CardContent className="pb-2 flex-grow space-y-4">
+                  {/* Pris och storlek */}
+                  <div className="flex justify-between items-center">
+                    <div className="font-bold text-lg">{formatCurrency(property.price)}</div>
+                    <div className="text-sm bg-gray-100 px-2 py-1 rounded-md">
+                      {property.size} • {property.rooms}
+                    </div>
+                  </div>
+
+                  {/* AI-analys och sammanfattning */}
+                  {property.analysis && property.analysis.analysis_summary && (
+                    <div className="bg-blue-50 p-3 rounded-md">
+                      <p className="text-sm text-gray-700">{property.analysis.analysis_summary}</p>
+                    </div>
+                  )}
+
+                  {/* Visa topp 3 attribut om tillgängligt */}
+                  {property.analysis &&
+                    property.analysis.attribute_scores &&
+                    property.analysis.attribute_scores.length > 0 && (
+                      <div className="space-y-2">
+                        {property.analysis.attribute_scores
+                          .sort((a, b) => b.score - a.score)
+                          .slice(0, 3)
+                          .map((attr, index) => (
+                            <div key={index} className="flex items-center justify-between text-xs">
+                              <span className="capitalize">{attr.name}</span>
+                              <div className="flex items-center gap-2 w-1/2">
+                                <Progress value={attr.score * 10} className="h-1.5" />
+                                <span className={getScoreColor(attr.score)}>{attr.score}</span>
+                              </div>
+                            </div>
+                          ))}
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      {comparison.description && <p className="text-gray-600 mb-4">{comparison.description}</p>}
-                      <div className="flex items-center gap-2 mb-4">
-                        <Badge variant="outline">{comparison.property_ids.length} fastigheter</Badge>
-                        <Badge variant={comparison.ai_analysis ? "secondary" : "outline"}>
-                          {comparison.ai_analysis ? "Analyserad" : "Ej analyserad"}
+                    )}
+
+                  {/* Egenskaper/badges */}
+                  {property.features && property.features.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {property.features.slice(0, 3).map((feature, index) => (
+                        <Badge key={index} variant="secondary" className="text-xs">
+                          {feature}
                         </Badge>
-                      </div>
-                    </CardContent>
-                    <CardFooter>
-                      <Button className="w-full" onClick={() => router.push(`/comparison/${comparison.id}`)}>
-                        <CompareIcon className="h-4 w-4 mr-2" />
-                        Visa jämförelse
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
+                      ))}
+                      {property.features.length > 3 && (
+                        <Badge
+                          variant="outline"
+                          className="text-xs cursor-pointer hover:bg-gray-100"
+                          onClick={() => showAllFeatures(property.features, property.title)}
+                        >
+                          +{property.features.length - 3} mer
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+
+                {/* Knappar */}
+                <CardFooter className="pt-4 border-t flex flex-col space-y-3">
+                  <div className="flex justify-between w-full">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-[48%]"
+                      onClick={() => viewPropertyDetails(property)}
+                    >
+                      <ChevronRight className="h-4 w-4 mr-2" />
+                      Visa detaljer
+                    </Button>
+                    <Button variant="outline" size="sm" className="w-[48%]" asChild>
+                      <a href={property.url} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Visa original
+                      </a>
+                    </Button>
+                  </div>
+                  <div className="flex justify-between w-full">
+                    <ComparisonButton property={property} className="w-[48%]" />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50 w-[48%]"
+                      onClick={() => handleDelete(property.id)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Ta bort
+                    </Button>
+                  </div>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        )}
 
         {/* Dialog för att visa alla egenskaper */}
         <Dialog open={!!selectedFeatures} onOpenChange={() => setSelectedFeatures(null)}>

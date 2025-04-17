@@ -27,6 +27,9 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { DebugPanel } from "@/components/debug-panel"
+import { ComparisonButton } from "@/components/comparison-button"
+import { toast } from "@/components/ui/use-toast"
 
 interface AttributeScore {
   name: string
@@ -68,7 +71,11 @@ interface PropertyData {
   is_analyzed: boolean
 }
 
-export default function PropertyDetailPage({ params }: { params: { id: string } }) {
+// Update the PropertyDetailPage component to handle async params properly
+export default function PropertyDetailPage({ params }: { params: { id: string } | Promise<{ id: string }> }) {
+  // Safely get the ID whether params is a Promise or a regular object
+  const propertyId = typeof params === "object" && !("then" in params) ? params.id : null
+
   const { user } = useAuth()
   const [property, setProperty] = useState<PropertyData | null>(null)
   const [analysis, setAnalysis] = useState<PropertyAnalysis | null>(null)
@@ -78,6 +85,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
   const [error, setError] = useState<string | null>(null)
   const [analysisError, setAnalysisError] = useState<string | null>(null)
   const router = useRouter()
+  const [isSaving, setIsSaving] = useState(false)
 
   // Hämta fastighetsdata
   useEffect(() => {
@@ -85,11 +93,30 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
       if (!user) return
 
       try {
+        // Get the ID from params, whether it's a Promise or a regular object
+        let id: string
+        if (propertyId) {
+          id = propertyId
+        } else if (params instanceof Promise) {
+          try {
+            const unwrappedParams = await params
+            id = unwrappedParams.id
+          } catch (error) {
+            console.error("Error unwrapping params:", error)
+            throw new Error("Could not get property ID")
+          }
+        } else {
+          throw new Error("Invalid params format")
+        }
+
+        console.log("Loading property with ID:", id)
+
         // Först försök att hämta från sessionStorage (om användaren kom från sparade fastigheter)
         const sessionProperty = sessionStorage.getItem("viewProperty")
         if (sessionProperty) {
           const parsedProperty = JSON.parse(sessionProperty)
-          if (parsedProperty.id === params.id) {
+          if (parsedProperty.id === id) {
+            console.log("Found property in session storage:", parsedProperty.id)
             setProperty(parsedProperty)
             setIsLoading(false)
 
@@ -104,14 +131,16 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
         }
 
         // Annars hämta från databasen
+        console.log("Fetching property from database:", id)
         const { data, error } = await supabase
           .from("saved_properties")
           .select("*")
-          .eq("id", params.id)
+          .eq("id", id)
           .eq("user_id", user.id)
           .single()
 
         if (error) {
+          console.error("Supabase error:", error)
           throw error
         }
 
@@ -119,6 +148,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
           throw new Error("Fastigheten hittades inte")
         }
 
+        console.log("Property loaded from database:", data.id)
         setProperty(data)
 
         // Om fastigheten är analyserad, hämta analysen
@@ -137,12 +167,13 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
     }
 
     loadProperty()
-  }, [user, params.id])
+  }, [user, params, propertyId])
 
   // Hämta analysdata
   const loadAnalysis = async (propertyId: string) => {
     try {
       setIsAnalysisLoading(true)
+      console.log("Loading analysis for property:", propertyId)
 
       const { data, error } = await supabase
         .from("property_analyses")
@@ -154,6 +185,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
         console.error("Fel vid hämtning av analys:", error)
         setAnalysisError("Kunde inte hämta analysen")
       } else if (data) {
+        console.log("Analysis loaded:", data.id)
         setAnalysis(data)
       }
     } catch (error) {
@@ -185,6 +217,59 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
     }
   }
 
+  const handleSave = async () => {
+    if (!property || !user) return
+
+    setIsSaving(true)
+    try {
+      if (property.user_id !== user.id) {
+        // This is not the user's property, so create a copy
+        const propertyData = {
+          user_id: user.id,
+          title: property.title,
+          price: property.price,
+          size: property.size,
+          rooms: property.rooms,
+          location: property.location,
+          description: property.description,
+          features: property.features,
+          images: property.images,
+          url: property.url,
+          agent: property.agent,
+          year_built: property.year_built,
+          monthly_fee: property.monthly_fee,
+          energy_rating: property.energy_rating,
+          is_analyzed: false, // Reset analysis status for the copy
+        }
+
+        const { error } = await supabase.from("saved_properties").insert([propertyData])
+
+        if (error) {
+          throw error
+        }
+
+        toast({
+          title: "Fastighet sparad",
+          description: "En kopia av fastigheten har sparats till din lista",
+        })
+      } else {
+        toast({
+          title: "Information",
+          description: "Denna fastighet finns redan i din lista",
+        })
+      }
+    } catch (error: any) {
+      console.error("Fel vid sparande av fastighet:", error)
+      toast({
+        title: "Fel",
+        description: "Kunde inte spara fastigheten. Försök igen.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   const handleAnalyze = async () => {
     if (!property || !user) return
 
@@ -192,7 +277,8 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
     setAnalysisError(null)
 
     try {
-      const response = await fetch("/api/analyze-saved-property", {
+      // Call the API route instead of directly using OpenAI
+      const response = await fetch("/api/property/analyze", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -200,54 +286,33 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
         body: JSON.stringify({
           propertyId: property.id,
           userId: user.id,
+          propertyData: property,
         }),
       })
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || "Kunde inte analysera fastigheten")
+        throw new Error(errorData.error || "Failed to analyze property")
       }
 
       const data = await response.json()
 
-      // Uppdatera property-objektet med is_analyzed = true
+      // If the property is already analyzed, use the existing analysis
+      if (data.alreadyAnalyzed) {
+        setProperty({
+          ...property,
+          is_analyzed: true,
+        })
+        setAnalysis(data.analysis)
+        return
+      }
+
+      // Update the UI with the new analysis
       setProperty({
         ...property,
         is_analyzed: true,
       })
-
-      // Uppdatera analysis-objektet med analysresultaten
-      if (data.alreadyAnalyzed) {
-        // Om fastigheten redan var analyserad, använd befintlig analys
-        setAnalysis({
-          id: data.analysisId || "unknown",
-          property_id: property.id,
-          analysis_summary: data.analysis.summary,
-          total_score: data.analysis.totalScore,
-          attribute_scores: data.analysis.attributes,
-          pros: data.analysis.pros,
-          cons: data.analysis.cons,
-          investment_rating: data.analysis.investmentRating,
-          value_for_money: data.analysis.valueForMoney,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-      } else {
-        // Om fastigheten just analyserades, använd ny analys
-        setAnalysis({
-          id: data.analysisId || "unknown",
-          property_id: property.id,
-          analysis_summary: data.analysis.summary,
-          total_score: data.analysis.totalScore,
-          attribute_scores: data.analysis.attributes,
-          pros: data.analysis.pros,
-          cons: data.analysis.cons,
-          investment_rating: data.analysis.investmentRating,
-          value_for_money: data.analysis.valueForMoney,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-      }
+      setAnalysis(data.analysis)
     } catch (error) {
       console.error("Fel vid analys av fastighet:", error)
       setAnalysisError(error instanceof Error ? error.message : "Kunde inte analysera fastigheten")
@@ -328,6 +393,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                 Tillbaka
               </Button>
             </Link>
+            <ComparisonButton property={property} />
             <Button variant="outline" asChild>
               <a href={property.url} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="h-4 w-4 mr-2" />
@@ -632,6 +698,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
             )}
           </CardContent>
         </Card>
+        <DebugPanel propertyId={property?.id} />
       </div>
     </ProtectedRoute>
   )

@@ -4,7 +4,7 @@ import { openai } from "@ai-sdk/openai"
 import { supabase } from "@/lib/supabase"
 
 export const dynamic = "force-dynamic"
-export const maxDuration = 300 // 60 sekunder timeout
+export const maxDuration = 60 // 60 sekunder timeout
 
 // Definiera attribut som ska bedömas
 const ATTRIBUTES = [
@@ -42,37 +42,52 @@ interface PropertyAnalysisResponse {
 
 export async function POST(request: Request) {
   try {
-    const { propertyId, userId } = await request.json()
+    const requestBody = await request.json()
+    const { propertyId, userId } = requestBody
+
+    console.log("API received request:", { propertyId, userId })
 
     if (!propertyId || !userId) {
+      console.log("Missing required fields:", { propertyId, userId })
       return NextResponse.json({ error: "Fastighets-ID och användar-ID krävs" }, { status: 400 })
     }
 
     // Hämta fastighetsdata från databasen
+    console.log("Fetching property from database:", propertyId)
     const { data: property, error: propertyError } = await supabase
       .from("saved_properties")
       .select("*")
       .eq("id", propertyId)
       .eq("user_id", userId)
-      .single()
+      .maybeSingle()
 
-    if (propertyError || !property) {
-      return NextResponse.json({ error: propertyError?.message || "Fastigheten hittades inte" }, { status: 404 })
+    if (propertyError) {
+      console.error("Error fetching property:", propertyError)
+      return NextResponse.json({ error: propertyError.message || "Fastigheten hittades inte" }, { status: 404 })
     }
+
+    if (!property) {
+      console.log("Property not found:", propertyId)
+      return NextResponse.json({ error: "Fastigheten hittades inte" }, { status: 404 })
+    }
+
+    console.log("Property found:", property.id)
 
     // Kontrollera om fastigheten redan har analyserats
     if (property.is_analyzed) {
       // Hämta befintlig analys
+      console.log("Property is already analyzed, fetching existing analysis")
       const { data: existingAnalysis, error: analysisError } = await supabase
         .from("property_analyses")
         .select("*")
         .eq("property_id", propertyId)
-        .single()
+        .maybeSingle()
 
       if (analysisError) {
         console.error("Error fetching existing analysis:", analysisError)
         // Om vi inte kan hämta analysen, fortsätt med att skapa en ny
       } else if (existingAnalysis) {
+        console.log("Existing analysis found:", existingAnalysis.id)
         return NextResponse.json({
           message: "Fastigheten har redan analyserats",
           alreadyAnalyzed: true,
@@ -90,6 +105,7 @@ export async function POST(request: Request) {
     }
 
     // Analysera fastigheten med OpenAI
+    console.log("Analyzing property with AI")
     const analysis = await analyzePropertyWithAI({
       title: property.title,
       description: property.description,
@@ -105,6 +121,7 @@ export async function POST(request: Request) {
 
     // Börja en transaktion för att uppdatera båda tabellerna
     // Steg 1: Uppdatera is_analyzed-flaggan i saved_properties
+    console.log("Updating is_analyzed flag")
     const { error: updatePropertyError } = await supabase
       .from("saved_properties")
       .update({ is_analyzed: true })
@@ -118,6 +135,7 @@ export async function POST(request: Request) {
 
     // Steg 2: Skapa eller uppdatera analysen i property_analyses
     // Kontrollera först om det redan finns en analys (för säkerhets skull)
+    console.log("Checking for existing analysis record")
     const { data: existingAnalysis, error: checkError } = await supabase
       .from("property_analyses")
       .select("id")
@@ -128,6 +146,7 @@ export async function POST(request: Request) {
 
     if (existingAnalysis) {
       // Uppdatera befintlig analys
+      console.log("Updating existing analysis:", existingAnalysis.id)
       const { data, error: updateError } = await supabase
         .from("property_analyses")
         .update({
@@ -152,6 +171,7 @@ export async function POST(request: Request) {
       analysisResult = data
     } else {
       // Skapa ny analys
+      console.log("Creating new analysis record")
       const { data, error: insertError } = await supabase
         .from("property_analyses")
         .insert({
@@ -175,6 +195,7 @@ export async function POST(request: Request) {
       analysisResult = data
     }
 
+    console.log("Analysis completed successfully")
     return NextResponse.json({
       message: "Fastigheten har analyserats",
       analysis,
