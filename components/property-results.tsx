@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -25,12 +25,106 @@ interface PropertyResultsProps {
   }
 }
 
+// Konstant för localStorage-nyckeln
+const PENDING_PROPERTY_KEY = "realpal_pending_property"
+
 export function PropertyResults({ results }: PropertyResultsProps) {
   const { property, images, metadata } = results
   const [saved, setSaved] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const { user } = useAuth()
   const router = useRouter()
+
+  // Kontrollera om det finns en väntande fastighet att spara vid inloggning
+  useEffect(() => {
+    const checkPendingProperty = async () => {
+      if (user) {
+        const pendingPropertyJson = localStorage.getItem(PENDING_PROPERTY_KEY)
+        if (pendingPropertyJson) {
+          try {
+            const pendingProperty = JSON.parse(pendingPropertyJson)
+
+            // Visa bekräftelsedialog
+            if (confirm("Vill du spara fastigheten du tittade på innan du loggade in?")) {
+              setIsSaving(true)
+
+              try {
+                // Spara fastigheten
+                const { error } = await supabase.from("saved_properties").insert([
+                  {
+                    user_id: user.id,
+                    title: pendingProperty.property.title,
+                    price: pendingProperty.property.price,
+                    size: pendingProperty.property.size,
+                    rooms: pendingProperty.property.rooms,
+                    location: pendingProperty.property.location,
+                    description: pendingProperty.property.description,
+                    features: pendingProperty.property.features,
+                    images: pendingProperty.images,
+                    url: pendingProperty.property.url,
+                    agent: pendingProperty.property.agent,
+                    year_built: pendingProperty.property.yearBuilt,
+                    monthly_fee: pendingProperty.property.monthlyFee,
+                    energy_rating: pendingProperty.property.energyRating,
+                  },
+                ])
+
+                if (error) {
+                  throw error
+                }
+
+                alert("Fastigheten har sparats!")
+
+                // Om den aktuella fastigheten är samma som den väntande, uppdatera UI
+                if (pendingProperty.property.url === property.url) {
+                  setSaved(true)
+                }
+              } catch (error) {
+                console.error("Fel vid sparande av väntande fastighet:", error)
+                alert("Kunde inte spara fastigheten. Försök igen.")
+              } finally {
+                setIsSaving(false)
+              }
+            }
+
+            // Ta bort den väntande fastigheten oavsett
+            localStorage.removeItem(PENDING_PROPERTY_KEY)
+          } catch (error) {
+            console.error("Fel vid tolkning av väntande fastighet:", error)
+            localStorage.removeItem(PENDING_PROPERTY_KEY)
+          }
+        }
+      }
+    }
+
+    checkPendingProperty()
+  }, [user, property.url])
+
+  // Kontrollera om fastigheten redan är sparad när komponenten laddas
+  useEffect(() => {
+    const checkIfSaved = async () => {
+      if (user) {
+        try {
+          const { data, error } = await supabase
+            .from("saved_properties")
+            .select("id")
+            .eq("user_id", user.id)
+            .eq("url", property.url)
+            .maybeSingle()
+
+          if (error) {
+            throw error
+          }
+
+          setSaved(!!data)
+        } catch (error) {
+          console.error("Fel vid kontroll om fastigheten är sparad:", error)
+        }
+      }
+    }
+
+    checkIfSaved()
+  }, [user, property.url])
 
   const formatCurrency = (price: string) => {
     // Try to extract numeric value and format it
@@ -43,8 +137,18 @@ export function PropertyResults({ results }: PropertyResultsProps) {
 
   const handleSave = async () => {
     if (!user) {
-      // Redirect to login if not logged in
-      router.push("/login")
+      // Spara fastigheten i localStorage innan omdirigering till inloggning
+      localStorage.setItem(
+        PENDING_PROPERTY_KEY,
+        JSON.stringify({
+          property,
+          images,
+          metadata,
+        }),
+      )
+
+      // Omdirigera till inloggningssidan
+      router.push("/login?redirect=save")
       return
     }
 

@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, AlertCircle, CheckCircle2 } from "lucide-react"
 import Link from "next/link"
+import { useRouter, useSearchParams } from "next/navigation"
 
 export default function SignupPage() {
   const [email, setEmail] = useState("")
@@ -17,7 +18,22 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
-  const { signUp } = useAuth()
+  const { signUp, user } = useAuth()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirect = searchParams.get("redirect")
+
+  // Om användaren redan är inloggad, omdirigera
+  useEffect(() => {
+    if (user) {
+      if (redirect === "save") {
+        // Om användaren kom från "spara" funktionen, gå tillbaka till startsidan
+        router.push("/")
+      } else {
+        router.push("/")
+      }
+    }
+  }, [user, router, redirect])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

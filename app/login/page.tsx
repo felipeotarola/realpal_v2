@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,15 +10,29 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, AlertCircle } from "lucide-react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { signIn } = useAuth()
+  const { signIn, user } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirect = searchParams.get("redirect")
+
+  // Om användaren redan är inloggad, omdirigera
+  useEffect(() => {
+    if (user) {
+      if (redirect === "save") {
+        // Om användaren kom från "spara" funktionen, gå tillbaka till startsidan
+        router.push("/")
+      } else {
+        router.push("/")
+      }
+    }
+  }, [user, router, redirect])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,7 +45,8 @@ export default function LoginPage() {
         setError(error.message === "Invalid login credentials" ? "Ogiltiga inloggningsuppgifter" : error.message)
         return
       }
-      router.push("/")
+
+      // Inloggningen lyckades, omdirigeringen hanteras av useEffect ovan
     } catch (err) {
       setError("Ett oväntat fel inträffade")
       console.error(err)
