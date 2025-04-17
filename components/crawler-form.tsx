@@ -6,7 +6,6 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { crawlWebsite } from "@/actions/crawler"
 import { PropertyResults } from "./property-results"
 import { Loader2, Home } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -23,15 +22,29 @@ export function CrawlerForm() {
     setError(null)
 
     try {
-      // Validate URL
+      // Validera URL
       try {
-        new URL(url) // This will throw if URL is invalid
+        new URL(url) // Detta kommer att kasta ett fel om URL:en är ogiltig
       } catch (urlError) {
         throw new Error("Vänligen ange en giltig URL för fastighetsannonsen inklusive http:// eller https://")
       }
 
-      const data = await crawlWebsite(url)
-      console.log("Crawler response:", data) // Add debugging
+      // Anropa vår nya API-route istället för server action
+      const response = await fetch("/api/crawler", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ url }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Kunde inte hämta fastighetsdetaljer")
+      }
+
+      const data = await response.json()
+      console.log("Crawler response:", data) // Lägg till felsökning
       setResults(data)
     } catch (err) {
       console.error("Fel vid hämtning av fastighet:", err)
