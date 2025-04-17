@@ -4,7 +4,7 @@ import { openai } from "@ai-sdk/openai"
 import { supabase } from "@/lib/supabase"
 
 export const dynamic = "force-dynamic"
-export const maxDuration = 60 // 60 sekunder timeout
+export const maxDuration = 300 // 60 sekunder timeout
 
 // Definiera attribut som ska bedömas
 const ATTRIBUTES = [

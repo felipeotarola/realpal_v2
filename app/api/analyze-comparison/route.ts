@@ -4,7 +4,7 @@ import { openai } from "@ai-sdk/openai"
 import { supabase } from "@/lib/supabase"
 
 export const dynamic = "force-dynamic"
-export const maxDuration = 120 // 120 sekunder timeout
+export const maxDuration = 300 // 120 sekunder timeout
 
 interface ComparisonAnalysisRequest {
   comparisonId: string

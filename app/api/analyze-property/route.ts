@@ -3,7 +3,7 @@ import { generateText } from "ai"
 import { openai } from "@ai-sdk/openai"
 
 export const dynamic = "force-dynamic"
-export const maxDuration = 60 // 60 sekunder timeout
+export const maxDuration = 300 // 60 sekunder timeout
 
 // Definiera attribut som ska bedömas
 const ATTRIBUTES = [
