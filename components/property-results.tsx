@@ -49,25 +49,26 @@ export function PropertyResults({ results }: PropertyResultsProps) {
               setIsSaving(true)
 
               try {
-                // Spara fastigheten
-                const { error } = await supabase.from("saved_properties").insert([
-                  {
-                    user_id: user.id,
-                    title: pendingProperty.property.title,
-                    price: pendingProperty.property.price,
-                    size: pendingProperty.property.size,
-                    rooms: pendingProperty.property.rooms,
-                    location: pendingProperty.property.location,
-                    description: pendingProperty.property.description,
-                    features: pendingProperty.property.features,
-                    images: pendingProperty.images,
-                    url: pendingProperty.property.url,
-                    agent: pendingProperty.property.agent,
-                    year_built: pendingProperty.property.yearBuilt,
-                    monthly_fee: pendingProperty.property.monthlyFee,
-                    energy_rating: pendingProperty.property.energyRating,
-                  },
-                ])
+                // Grundläggande fastighetsdata som alltid sparas
+                const propertyData = {
+                  user_id: user.id,
+                  title: pendingProperty.property.title,
+                  price: pendingProperty.property.price,
+                  size: pendingProperty.property.size,
+                  rooms: pendingProperty.property.rooms,
+                  location: pendingProperty.property.location,
+                  description: pendingProperty.property.description,
+                  features: pendingProperty.property.features,
+                  images: pendingProperty.images,
+                  url: pendingProperty.property.url,
+                  agent: pendingProperty.property.agent,
+                  year_built: pendingProperty.property.yearBuilt,
+                  monthly_fee: pendingProperty.property.monthlyFee,
+                  energy_rating: pendingProperty.property.energyRating,
+                }
+
+                // Spara fastigheten utan analys
+                const { error } = await supabase.from("saved_properties").insert([propertyData])
 
                 if (error) {
                   throw error
@@ -174,33 +175,36 @@ export function PropertyResults({ results }: PropertyResultsProps) {
             throw deleteError
           }
         }
+
+        setSaved(false)
       } else {
-        // Save the property
-        const { error } = await supabase.from("saved_properties").insert([
-          {
-            user_id: user.id,
-            title: property.title,
-            price: property.price,
-            size: property.size,
-            rooms: property.rooms,
-            location: property.location,
-            description: property.description,
-            features: property.features,
-            images: images,
-            url: property.url,
-            agent: property.agent,
-            year_built: property.yearBuilt,
-            monthly_fee: property.monthlyFee,
-            energy_rating: property.energyRating,
-          },
-        ])
+        // Grundläggande fastighetsdata som alltid sparas
+        const propertyData = {
+          user_id: user.id,
+          title: property.title,
+          price: property.price,
+          size: property.size,
+          rooms: property.rooms,
+          location: property.location,
+          description: property.description,
+          features: property.features,
+          images: images,
+          url: property.url,
+          agent: property.agent,
+          year_built: property.yearBuilt,
+          monthly_fee: property.monthlyFee,
+          energy_rating: property.energyRating,
+        }
+
+        // Spara fastigheten utan analys
+        const { error } = await supabase.from("saved_properties").insert([propertyData])
 
         if (error) {
           throw error
         }
-      }
 
-      setSaved(!saved)
+        setSaved(true)
+      }
     } catch (error) {
       console.error("Fel vid sparande av fastighet:", error)
       alert("Kunde inte spara fastigheten. Försök igen.")

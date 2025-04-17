@@ -5,12 +5,33 @@ import { useAuth } from "@/contexts/auth-context"
 import { supabase } from "@/lib/supabase"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Loader2, Home, Trash2, ExternalLink, ChevronRight, MapPin } from "lucide-react"
+import { Loader2, Home, Trash2, ExternalLink, ChevronRight, MapPin, Star, Brain } from "lucide-react"
 import { ProtectedRoute } from "@/components/protected-route"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { useRouter } from "next/navigation"
+import { Progress } from "@/components/ui/progress"
+
+interface AttributeScore {
+  name: string
+  score: number
+  comment: string
+}
+
+interface PropertyAnalysis {
+  id: string
+  property_id: string
+  analysis_summary: string
+  total_score: number
+  attribute_scores: AttributeScore[]
+  pros: string[]
+  cons: string[]
+  investment_rating: number
+  value_for_money: number
+  created_at: string
+  updated_at: string
+}
 
 interface SavedProperty {
   id: string
@@ -29,6 +50,8 @@ interface SavedProperty {
   monthly_fee?: string
   energy_rating?: string
   created_at: string
+  is_analyzed: boolean
+  analysis?: PropertyAnalysis | null
 }
 
 export default function SavedPropertiesPage() {
@@ -45,7 +68,8 @@ export default function SavedPropertiesPage() {
       if (!user) return
 
       try {
-        const { data, error } = await supabase
+        // Hämta alla sparade fastigheter
+        const { data: properties, error } = await supabase
           .from("saved_properties")
           .select("*")
           .eq("user_id", user.id)
@@ -55,7 +79,28 @@ export default function SavedPropertiesPage() {
           throw error
         }
 
-        setSavedProperties(data || [])
+        // För fastigheter som är analyserade, hämta analysdata
+        const propertiesWithAnalysis = await Promise.all(
+          (properties || []).map(async (property) => {
+            if (property.is_analyzed) {
+              const { data: analysis, error: analysisError } = await supabase
+                .from("property_analyses")
+                .select("*")
+                .eq("property_id", property.id)
+                .single()
+
+              if (analysisError) {
+                console.error("Fel vid hämtning av analys för fastighet:", property.id, analysisError)
+                return { ...property, analysis: null }
+              }
+
+              return { ...property, analysis }
+            }
+            return { ...property, analysis: null }
+          }),
+        )
+
+        setSavedProperties(propertiesWithAnalysis || [])
       } catch (error: any) {
         console.error("Fel vid laddning av sparade fastigheter:", error)
         setError(error.message || "Kunde inte ladda sparade fastigheter")
@@ -106,6 +151,20 @@ export default function SavedPropertiesPage() {
     router.push(`/property/${property.id}`)
   }
 
+  // Funktion för att visa poängfärg baserat på värde
+  const getScoreColor = (score: number) => {
+    if (score >= 8) return "text-green-600"
+    if (score >= 6) return "text-yellow-600"
+    return "text-red-600"
+  }
+
+  // Funktion för att visa poängbakgrundsfärg baserat på värde
+  const getScoreBackgroundColor = (score: number) => {
+    if (score >= 8) return "bg-green-100"
+    if (score >= 6) return "bg-yellow-100"
+    return "bg-red-100"
+  }
+
   return (
     <ProtectedRoute>
       <div className="container mx-auto py-10 px-4">
@@ -150,6 +209,25 @@ export default function SavedPropertiesPage() {
                       <Home className="h-8 w-8 text-gray-400" />
                     </div>
                   )}
+
+                  {/* Visa totalpoäng om tillgängligt */}
+                  {property.analysis && property.analysis.total_score && (
+                    <div
+                      className={`absolute top-2 right-2 ${getScoreBackgroundColor(property.analysis.total_score)} rounded-full p-1 px-2 font-bold text-sm flex items-center`}
+                    >
+                      <Star className="h-3.5 w-3.5 mr-1 text-yellow-500 fill-yellow-500" />
+                      <span className={getScoreColor(property.analysis.total_score)}>
+                        {property.analysis.total_score.toFixed(1)}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Visa analysikon om fastigheten inte är analyserad */}
+                  {!property.is_analyzed && (
+                    <div className="absolute top-2 right-2 bg-gray-100 rounded-full p-1 px-2 text-sm flex items-center">
+                      <Brain className="h-3.5 w-3.5 text-gray-500" />
+                    </div>
+                  )}
                 </div>
 
                 {/* Rubrik och plats */}
@@ -171,8 +249,32 @@ export default function SavedPropertiesPage() {
                     </div>
                   </div>
 
-                  {/* Beskrivning */}
-                  <p className="text-sm text-gray-700 line-clamp-2">{property.description}</p>
+                  {/* AI-analys och sammanfattning */}
+                  {property.analysis && property.analysis.analysis_summary && (
+                    <div className="bg-blue-50 p-3 rounded-md">
+                      <p className="text-sm text-gray-700">{property.analysis.analysis_summary}</p>
+                    </div>
+                  )}
+
+                  {/* Visa topp 3 attribut om tillgängligt */}
+                  {property.analysis &&
+                    property.analysis.attribute_scores &&
+                    property.analysis.attribute_scores.length > 0 && (
+                      <div className="space-y-2">
+                        {property.analysis.attribute_scores
+                          .sort((a, b) => b.score - a.score)
+                          .slice(0, 3)
+                          .map((attr, index) => (
+                            <div key={index} className="flex items-center justify-between text-xs">
+                              <span className="capitalize">{attr.name}</span>
+                              <div className="flex items-center gap-2 w-1/2">
+                                <Progress value={attr.score * 10} className="h-1.5" />
+                                <span className={getScoreColor(attr.score)}>{attr.score}</span>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    )}
 
                   {/* Egenskaper/badges */}
                   {property.features && property.features.length > 0 && (
