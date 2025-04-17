@@ -5,10 +5,12 @@ import { useAuth } from "@/contexts/auth-context"
 import { supabase } from "@/lib/supabase"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Loader2, Home, Trash2, ExternalLink } from "lucide-react"
+import { Loader2, Home, Trash2, ExternalLink, ChevronRight, MapPin } from "lucide-react"
 import { ProtectedRoute } from "@/components/protected-route"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { useRouter } from "next/navigation"
 
 interface SavedProperty {
   id: string
@@ -34,6 +36,9 @@ export default function SavedPropertiesPage() {
   const [savedProperties, setSavedProperties] = useState<SavedProperty[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selectedFeatures, setSelectedFeatures] = useState<string[] | null>(null)
+  const [dialogTitle, setDialogTitle] = useState("")
+  const router = useRouter()
 
   useEffect(() => {
     async function loadSavedProperties() {
@@ -90,6 +95,17 @@ export default function SavedPropertiesPage() {
     return price
   }
 
+  const showAllFeatures = (features: string[], title: string) => {
+    setSelectedFeatures(features)
+    setDialogTitle(title)
+  }
+
+  const viewPropertyDetails = (property: SavedProperty) => {
+    // Spara fastigheten i sessionStorage för att visa detaljer på detaljsidan
+    sessionStorage.setItem("viewProperty", JSON.stringify(property))
+    router.push(`/property/${property.id}`)
+  }
+
   return (
     <ProtectedRoute>
       <div className="container mx-auto py-10 px-4">
@@ -115,7 +131,11 @@ export default function SavedPropertiesPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {savedProperties.map((property) => (
               <Card key={property.id} className="overflow-hidden flex flex-col h-full">
-                <div className="relative aspect-video bg-gray-100">
+                {/* Bild */}
+                <div
+                  className="relative aspect-video bg-gray-100 cursor-pointer"
+                  onClick={() => viewPropertyDetails(property)}
+                >
                   {property.images && property.images.length > 0 ? (
                     <img
                       src={property.images[0] || "/placeholder.svg"}
@@ -131,49 +151,100 @@ export default function SavedPropertiesPage() {
                     </div>
                   )}
                 </div>
-                <CardHeader className="pb-2">
+
+                {/* Rubrik och plats */}
+                <CardHeader className="pb-2 cursor-pointer" onClick={() => viewPropertyDetails(property)}>
                   <CardTitle className="text-lg line-clamp-1">{property.title}</CardTitle>
-                  <CardDescription className="line-clamp-1">{property.location}</CardDescription>
+                  <CardDescription className="flex items-center text-sm text-gray-500">
+                    <MapPin className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
+                    <span className="line-clamp-1">{property.location}</span>
+                  </CardDescription>
                 </CardHeader>
-                <CardContent className="pb-2 flex-grow">
-                  <div className="flex justify-between items-center mb-2">
-                    <div className="font-bold">{formatCurrency(property.price)}</div>
-                    <div className="text-sm text-gray-500">
+
+                {/* Huvudinnehåll */}
+                <CardContent className="pb-2 flex-grow space-y-4">
+                  {/* Pris och storlek */}
+                  <div className="flex justify-between items-center">
+                    <div className="font-bold text-lg">{formatCurrency(property.price)}</div>
+                    <div className="text-sm bg-gray-100 px-2 py-1 rounded-md">
                       {property.size} • {property.rooms}
                     </div>
                   </div>
-                  <p className="text-sm text-gray-700 line-clamp-2 mb-2">{property.description}</p>
+
+                  {/* Beskrivning */}
+                  <p className="text-sm text-gray-700 line-clamp-2">{property.description}</p>
+
+                  {/* Egenskaper/badges */}
                   {property.features && property.features.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-2">
+                    <div className="flex flex-wrap gap-1.5">
                       {property.features.slice(0, 3).map((feature, index) => (
                         <Badge key={index} variant="secondary" className="text-xs">
                           {feature}
                         </Badge>
                       ))}
                       {property.features.length > 3 && (
-                        <Badge variant="outline" className="text-xs">
+                        <Badge
+                          variant="outline"
+                          className="text-xs cursor-pointer hover:bg-gray-100"
+                          onClick={() => showAllFeatures(property.features, property.title)}
+                        >
                           +{property.features.length - 3} mer
                         </Badge>
                       )}
                     </div>
                   )}
                 </CardContent>
-                <CardFooter className="pt-0 flex justify-between">
-                  <Button variant="outline" size="sm" onClick={() => handleDelete(property.id)}>
-                    <Trash2 className="h-4 w-4 mr-1" />
+
+                {/* Knappar */}
+                <CardFooter className="pt-4 border-t flex flex-col space-y-3">
+                  <div className="flex justify-between w-full">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-[48%]"
+                      onClick={() => viewPropertyDetails(property)}
+                    >
+                      <ChevronRight className="h-4 w-4 mr-2" />
+                      Visa detaljer
+                    </Button>
+                    <Button variant="outline" size="sm" className="w-[48%]" asChild>
+                      <a href={property.url} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Visa original
+                      </a>
+                    </Button>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50 w-full"
+                    onClick={() => handleDelete(property.id)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
                     Ta bort
-                  </Button>
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={property.url} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="h-4 w-4 mr-1" />
-                      Visa
-                    </a>
                   </Button>
                 </CardFooter>
               </Card>
             ))}
           </div>
         )}
+
+        {/* Dialog för att visa alla egenskaper */}
+        <Dialog open={!!selectedFeatures} onOpenChange={() => setSelectedFeatures(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Egenskaper för {dialogTitle}</DialogTitle>
+              <DialogDescription>Alla egenskaper för denna fastighet</DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-wrap gap-2 mt-4">
+              {selectedFeatures?.map((feature, index) => (
+                <Badge key={index} variant="secondary">
+                  {feature}
+                </Badge>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </ProtectedRoute>
   )
