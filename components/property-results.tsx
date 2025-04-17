@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { PropertyData } from "@/actions/crawler"
 import { ImageGallery } from "./image-gallery"
-import { Heart, Share2, ExternalLink, Info, Home, Database, Loader2, CheckCircle } from "lucide-react"
+import { Heart, Share2, ExternalLink, Info, Home, Database, Loader2, Trash2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useAuth } from "@/contexts/auth-context"
 import { supabase } from "@/lib/supabase"
@@ -319,7 +319,12 @@ export function PropertyResults({ results }: PropertyResultsProps) {
         </CardContent>
 
         <CardFooter className="flex justify-between border-t p-4">
-          <Button variant={saved ? "default" : "outline"} onClick={handleSave} disabled={isSaving}>
+          <Button
+            variant={saved ? "destructive" : "outline"}
+            onClick={handleSave}
+            disabled={isSaving}
+            className={saved ? "bg-red-100 hover:bg-red-200 text-red-700 border-red-200" : ""}
+          >
             {isSaving ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -327,12 +332,8 @@ export function PropertyResults({ results }: PropertyResultsProps) {
               </>
             ) : (
               <>
-                {saved ? (
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                ) : (
-                  <Heart className={`h-4 w-4 mr-2 ${saved ? "fill-current" : ""}`} />
-                )}
-                {saved ? "Sparad" : "Spara"}
+                {saved ? <Trash2 className="h-4 w-4 mr-2" /> : <Heart className="h-4 w-4 mr-2" />}
+                {saved ? "Ta bort från sparade" : "Spara fastighet"}
               </>
             )}
           </Button>
