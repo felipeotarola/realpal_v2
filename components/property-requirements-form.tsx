@@ -70,6 +70,7 @@ export function PropertyRequirementsForm() {
 
         // Fetch user requirements
         const userRequirements = await getUserPropertyRequirements(user.id)
+        console.log("User requirements fetched:", userRequirements)
 
         // Merge default requirements with user requirements
         setRequirements({
@@ -100,6 +101,7 @@ export function PropertyRequirementsForm() {
 
   // Handle value change
   const handleValueChange = (featureId: string, value: any) => {
+    console.log(`Changing value for ${featureId} to:`, value)
     setRequirements((prev) => ({
       ...prev,
       [featureId]: {
@@ -180,86 +182,97 @@ export function PropertyRequirementsForm() {
 
   return (
     <div className="space-y-8">
-      {features.map((feature) => (
-        <div key={feature.id} className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <Label htmlFor={feature.id} className="text-base font-medium">
-              {feature.label}
-            </Label>
-            {getImportanceBadge(requirements[feature.id]?.importance || 0)}
-          </div>
+      {features.map((feature) => {
+        const currentValue = requirements[feature.id]?.value
+        const currentImportance = requirements[feature.id]?.importance || 0
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor={`${feature.id}-value`} className="text-sm text-gray-500">
-                Önskat värde
+        console.log(`Rendering feature ${feature.id}:`, {
+          type: feature.type,
+          currentValue,
+          currentImportance,
+        })
+
+        return (
+          <div key={feature.id} className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <Label htmlFor={feature.id} className="text-base font-medium">
+                {feature.label}
               </Label>
-              {feature.type === "number" && (
-                <Input
-                  id={`${feature.id}-value`}
-                  type="number"
-                  min={feature.min_value}
-                  max={feature.max_value}
-                  value={requirements[feature.id]?.value || feature.min_value}
-                  onChange={(e) => handleValueChange(feature.id, Number.parseInt(e.target.value) || feature.min_value)}
-                />
-              )}
-              {feature.type === "select" && (
-                <Select
-                  value={requirements[feature.id]?.value || (feature.options ? feature.options[0] : "")}
-                  onValueChange={(value) => handleValueChange(feature.id, value)}
-                >
-                  <SelectTrigger id={`${feature.id}-value`}>
-                    <SelectValue placeholder="Välj..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {feature.options &&
-                      feature.options.map((option: string) => (
-                        <SelectItem key={option} value={option}>
-                          {option}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              )}
-              {feature.type === "boolean" && (
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id={`${feature.id}-value`}
-                    checked={requirements[feature.id]?.value || false}
-                    onCheckedChange={(checked) => handleValueChange(feature.id, checked)}
-                  />
-                  <Label htmlFor={`${feature.id}-value`}>{requirements[feature.id]?.value ? "Ja" : "Nej"}</Label>
-                </div>
-              )}
+              {getImportanceBadge(currentImportance)}
             </div>
 
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <Label htmlFor={`${feature.id}-importance`} className="text-sm text-gray-500">
-                  Viktighet
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor={`${feature.id}-value`} className="text-sm text-gray-500">
+                  Önskat värde
                 </Label>
-                <span className="text-sm text-gray-500">
-                  {importanceLevels.find((level) => level.value === requirements[feature.id]?.importance)?.label}
-                </span>
+                {feature.type === "number" && (
+                  <Input
+                    id={`${feature.id}-value`}
+                    type="number"
+                    min={feature.min_value}
+                    max={feature.max_value}
+                    value={currentValue !== undefined ? currentValue : feature.min_value}
+                    onChange={(e) => handleValueChange(feature.id, Number(e.target.value) || feature.min_value)}
+                  />
+                )}
+                {feature.type === "select" && (
+                  <Select
+                    value={String(currentValue || (feature.options ? feature.options[0] : ""))}
+                    onValueChange={(value) => handleValueChange(feature.id, value)}
+                  >
+                    <SelectTrigger id={`${feature.id}-value`}>
+                      <SelectValue placeholder="Välj..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {feature.options &&
+                        feature.options.map((option: string) => (
+                          <SelectItem key={option} value={option}>
+                            {option}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                {feature.type === "boolean" && (
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id={`${feature.id}-value`}
+                      checked={!!currentValue}
+                      onCheckedChange={(checked) => handleValueChange(feature.id, checked)}
+                    />
+                    <Label htmlFor={`${feature.id}-value`}>{currentValue ? "Ja" : "Nej"}</Label>
+                  </div>
+                )}
               </div>
-              <Slider
-                id={`${feature.id}-importance`}
-                min={0}
-                max={4}
-                step={1}
-                value={[requirements[feature.id]?.importance || 0]}
-                onValueChange={(value) => handleImportanceChange(feature.id, value)}
-              />
-              <div className="flex justify-between text-xs text-gray-400">
-                <span>Inte viktigt</span>
-                <span>Måste ha</span>
+
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <Label htmlFor={`${feature.id}-importance`} className="text-sm text-gray-500">
+                    Viktighet
+                  </Label>
+                  <span className="text-xs text-gray-500 truncate ml-2">
+                    {importanceLevels.find((level) => level.value === currentImportance)?.label}
+                  </span>
+                </div>
+                <Slider
+                  id={`${feature.id}-importance`}
+                  min={0}
+                  max={4}
+                  step={1}
+                  value={[currentImportance]}
+                  onValueChange={(value) => handleImportanceChange(feature.id, value)}
+                />
+                <div className="flex justify-between text-xs text-gray-400">
+                  <span className="text-[10px] sm:text-xs">Inte viktigt</span>
+                  <span className="text-[10px] sm:text-xs">Måste ha</span>
+                </div>
               </div>
             </div>
+            <Separator className="mt-4" />
           </div>
-          <Separator className="mt-4" />
-        </div>
-      ))}
+        )
+      })}
 
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={saving}>

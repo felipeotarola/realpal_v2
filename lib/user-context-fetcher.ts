@@ -91,10 +91,20 @@ export async function fetchUserContext(userId: string) {
     const preferences: UserPreference[] =
       userPreferences?.map((pref) => {
         const feature = features?.find((f) => f.id === pref.feature_id)
+
+        // Extract the actual value from the JSONB structure
+        let extractedValue = pref.value
+        if (pref.value && typeof pref.value === "object") {
+          // If it's an object with a value property, extract it
+          if ("value" in pref.value) {
+            extractedValue = pref.value.value
+          }
+        }
+
         return {
           featureId: pref.feature_id,
           featureLabel: feature?.label || pref.feature_id,
-          value: pref.value.value !== undefined ? pref.value.value : pref.value,
+          value: extractedValue,
           importance: pref.importance,
         }
       }) || []

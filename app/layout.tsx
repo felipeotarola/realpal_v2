@@ -1,5 +1,7 @@
 import type React from "react"
 import "./globals.css"
+// Import the mobile menu CSS
+import "./mobile-menu.css"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import { AuthProvider } from "@/contexts/auth-context"
@@ -13,6 +15,12 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "RealPal",
   description: "Spara och organisera fastigheter du är intresserad av",
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  },
     generator: 'v0.dev'
 }
 

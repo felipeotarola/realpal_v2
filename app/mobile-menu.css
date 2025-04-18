@@ -1,0 +1,18 @@
+/* Mobile menu styles */
+body.menu-open {
+  overflow: hidden;
+}
+
+.mobile-menu-overlay {
+  transition: opacity 0.3s ease;
+}
+
+.mobile-menu {
+  transition: transform 0.3s ease;
+}
+
+@media (max-width: 768px) {
+  .mobile-menu-open {
+    overflow: hidden;
+  }
+}

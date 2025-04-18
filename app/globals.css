@@ -92,3 +92,33 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Mobile optimizations */
+@media (max-width: 640px) {
+  /* Prevent horizontal overflow */
+  body,
+  html {
+    overflow-x: hidden;
+    width: 100%;
+    position: relative;
+  }
+
+  /* Reduce padding on mobile */
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  /* Make buttons more compact on mobile */
+  .btn-mobile-compact {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  /* Fix table overflow issues */
+  .table-container {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}

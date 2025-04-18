@@ -200,8 +200,8 @@ export default function ComparePage() {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={clearComparison} className="w-full sm:w-auto">
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={clearComparison} className="flex items-center justify-center">
               <X className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
               <span className="whitespace-nowrap">Rensa</span>
             </Button>
@@ -221,7 +221,7 @@ export default function ComparePage() {
                   }
                   setSaveDialogOpen(true)
                 }}
-                className="w-full sm:w-auto"
+                className="flex items-center justify-center"
               >
                 <Save className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
                 <span className="whitespace-nowrap">{currentComparisonId ? "Uppdatera" : "Spara"}</span>
@@ -229,14 +229,23 @@ export default function ComparePage() {
             )}
 
             {currentComparisonId && (
-              <Button variant="outline" size="sm" onClick={() => setNoteDialogOpen(true)} className="w-full sm:w-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setNoteDialogOpen(true)}
+                className="flex items-center justify-center"
+              >
                 <History className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
                 <span className="whitespace-nowrap">Anteckning</span>
               </Button>
             )}
 
             {!aiComparison && !loadingAiComparison && (
-              <Button size="sm" onClick={generateAiComparison} className="w-full sm:w-auto">
+              <Button
+                size="sm"
+                onClick={generateAiComparison}
+                className="flex items-center justify-center col-span-2 sm:col-span-1"
+              >
                 <Brain className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
                 <span className="whitespace-nowrap">AI-analys</span>
               </Button>
@@ -380,23 +389,23 @@ export default function ComparePage() {
         )}
 
         <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-6 w-full flex">
-            <TabsTrigger value="overview" className="flex-1">
+          <TabsList className="mb-6 w-full flex max-w-full overflow-x-auto">
+            <TabsTrigger value="overview" className="flex-1 min-w-[80px]">
               Översikt
             </TabsTrigger>
-            <TabsTrigger value="details" className="flex-1">
+            <TabsTrigger value="details" className="flex-1 min-w-[80px]">
               Detaljer
             </TabsTrigger>
             {aiComparison && (
-              <TabsTrigger value="analysis" className="flex-1">
+              <TabsTrigger value="analysis" className="flex-1 min-w-[80px]">
                 AI-analys
               </TabsTrigger>
             )}
           </TabsList>
 
           <TabsContent value="overview">
-            <div className="overflow-x-auto">
-              <Table className="border">
+            <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
+              <Table className="border w-full min-w-[640px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[200px]">Egenskap</TableHead>

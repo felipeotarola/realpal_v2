@@ -49,14 +49,29 @@ export async function getUserPropertyRequirements(
     throw new Error("Failed to fetch user property requirements")
   }
 
+  console.log("Raw user requirements from DB:", data)
+
   // Transform the data to match our component's state structure
   const requirements: Record<string, { value: any; importance: number }> = {}
   data.forEach((req) => {
+    // Extract the actual value from the JSONB structure
+    let extractedValue = req.value
+
+    // Handle different value formats
+    if (req.value && typeof req.value === "object") {
+      // If it's an object with a value property, extract it
+      if ("value" in req.value) {
+        extractedValue = req.value.value
+      }
+    }
+
     requirements[req.feature_id] = {
-      value: req.value,
+      value: extractedValue,
       importance: req.importance,
     }
   })
+
+  console.log("Transformed requirements for component:", requirements)
 
   return requirements
 }
@@ -72,10 +87,8 @@ export async function saveUserPropertyRequirements(
       // Ensure value is properly formatted for JSONB
       let formattedValue = value
 
-      // If value is a boolean or number, wrap it in an object for JSONB
-      if (typeof value === "boolean" || typeof value === "number") {
-        formattedValue = { value }
-      } else if (typeof value === "string") {
+      // If value is a primitive type, wrap it in an object for JSONB
+      if (typeof value === "boolean" || typeof value === "number" || typeof value === "string") {
         formattedValue = { value }
       }
 

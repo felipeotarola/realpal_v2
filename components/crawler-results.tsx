@@ -95,13 +95,19 @@ export function CrawlerResults({ results }: CrawlerResultsProps) {
       )}
 
       <Tabs defaultValue="summary" className="mt-8">
-        <TabsList className="grid grid-cols-4 w-full">
-          <TabsTrigger value="summary">AI Summary</TabsTrigger>
-          <TabsTrigger value="content">Content</TabsTrigger>
-          <TabsTrigger value="images" disabled={!hasImages}>
+        <TabsList className="grid grid-cols-4 w-full max-w-full overflow-x-auto">
+          <TabsTrigger value="summary" className="min-w-[80px] text-xs sm:text-sm">
+            AI Summary
+          </TabsTrigger>
+          <TabsTrigger value="content" className="min-w-[80px] text-xs sm:text-sm">
+            Content
+          </TabsTrigger>
+          <TabsTrigger value="images" disabled={!hasImages} className="min-w-[80px] text-xs sm:text-sm">
             Images {hasImages && `(${results.images?.length})`}
           </TabsTrigger>
-          <TabsTrigger value="analysis">Visual Analysis</TabsTrigger>
+          <TabsTrigger value="analysis" className="min-w-[80px] text-xs sm:text-sm">
+            Visual Analysis
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="summary" className="mt-6">

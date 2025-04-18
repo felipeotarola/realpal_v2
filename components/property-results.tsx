@@ -333,11 +333,11 @@ export function PropertyResults({ results }: PropertyResultsProps) {
         </CardContent>
 
         <CardFooter className="pt-4 border-t flex flex-col space-y-3">
-          <div className="flex justify-between w-full gap-3">
+          <div className="grid grid-cols-2 w-full gap-2">
             <Button
               variant={saved ? "outline" : "default"}
               size="sm"
-              className="flex-1"
+              className="flex items-center justify-center"
               onClick={handleSave}
               disabled={isSaving}
             >
@@ -345,52 +345,59 @@ export function PropertyResults({ results }: PropertyResultsProps) {
                 "Sparar..."
               ) : saved ? (
                 <>
-                  <CheckIcon className="h-4 w-4 mr-2" />
-                  Sparad
+                  <CheckIcon className="h-4 w-4 mr-1.5" />
+                  <span className="truncate">Sparad</span>
                 </>
               ) : (
                 <>
-                  <BookmarkIcon className="h-4 w-4 mr-2" />
-                  Spara fastighet
+                  <BookmarkIcon className="h-4 w-4 mr-1.5" />
+                  <span className="truncate">Spara</span>
                 </>
               )}
             </Button>
-            <Button variant="outline" size="sm" className="flex-1" onClick={handleShare}>
-              <Share2 className="h-4 w-4 mr-2" />
-              Dela
+            <Button variant="outline" size="sm" className="flex items-center justify-center" onClick={handleShare}>
+              <Share2 className="h-4 w-4 mr-1.5" />
+              <span className="truncate">Dela</span>
             </Button>
-          </div>
-          <div className="flex justify-between w-full gap-3">
-            <Button variant="outline" size="sm" className="flex-1" onClick={() => viewPropertyDetails(property)}>
-              <ChevronRight className="h-4 w-4 mr-2" />
-              Visa detaljer
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center justify-center"
+              onClick={() => viewPropertyDetails(property)}
+            >
+              <ChevronRight className="h-4 w-4 mr-1.5" />
+              <span className="truncate">Detaljer</span>
             </Button>
-            <Button variant="outline" size="sm" className="flex-1" asChild>
+            <Button variant="outline" size="sm" className="flex items-center justify-center" asChild>
               <a href={property.url} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Visa original
+                <ExternalLink className="h-4 w-4 mr-1.5" />
+                <span className="truncate">Original</span>
               </a>
             </Button>
-          </div>
-          <div className="flex justify-between w-full gap-3">
-            <ComparisonButton property={property} className="flex-1" />
+
+            <ComparisonButton property={property} className="flex items-center justify-center" />
             <Button
               variant="ghost"
               size="sm"
-              className="text-red-500 hover:text-red-700 hover:bg-red-50 flex-1"
+              className="text-red-500 hover:text-red-700 hover:bg-red-50 flex items-center justify-center"
               onClick={() => handleDelete(property.id)}
             >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Ta bort
+              <Trash2 className="h-4 w-4 mr-1.5" />
+              <span className="truncate">Ta bort</span>
             </Button>
           </div>
         </CardFooter>
       </Card>
 
       <Tabs defaultValue="images" className="mt-8">
-        <TabsList className="grid grid-cols-2 w-full">
-          <TabsTrigger value="images">Bilder ({images.length})</TabsTrigger>
-          <TabsTrigger value="details">Ytterligare detaljer</TabsTrigger>
+        <TabsList className="grid grid-cols-2 w-full max-w-full overflow-x-auto">
+          <TabsTrigger value="images" className="min-w-[100px]">
+            Bilder ({images.length})
+          </TabsTrigger>
+          <TabsTrigger value="details" className="min-w-[100px]">
+            Ytterligare detaljer
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="images" className="mt-6">
