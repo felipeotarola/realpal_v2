@@ -30,6 +30,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { DebugPanel } from "@/components/debug-panel"
 import { ComparisonButton } from "@/components/comparison-button"
 import { toast } from "@/components/ui/use-toast"
+// Lägg till import för PropertyAssistant
+import { PropertyAssistant } from "@/components/property-assistant"
 
 interface AttributeScore {
   name: string
@@ -418,6 +420,8 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
 
   const isAnalyzed = property.is_analyzed && analysis !== null
 
+  // I slutet av komponenten, innan return-satsen, lägg till:
+  // Ersätt AIChatAssistant med PropertyAssistant och skicka med property som prop
   return (
     <ProtectedRoute>
       <div className="container mx-auto py-10 px-4">
@@ -746,6 +750,8 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
           </CardContent>
         </Card>
         <DebugPanel propertyId={property?.id} />
+        {/* Befintlig kod */}
+        <PropertyAssistant property={property} />
       </div>
     </ProtectedRoute>
   )
