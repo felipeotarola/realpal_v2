@@ -61,7 +61,9 @@
     "@supabase/supabase-js": "latest",
     "@ai-sdk/openai": "latest",
     "ai": "latest",
-    "@supabase/auth-helpers-nextjs": "latest"
+    "@supabase/auth-helpers-nextjs": "latest",
+    "fs": "latest",
+    "path": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",
