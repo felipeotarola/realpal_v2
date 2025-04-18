@@ -277,7 +277,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
     setAnalysisError(null)
 
     try {
-      // Call the API route instead of directly using OpenAI
+      // Call the API route with the complete property data in the payload
       const response = await fetch("/api/property/analyze", {
         method: "POST",
         headers: {
@@ -297,22 +297,66 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
 
       const data = await response.json()
 
-      // If the property is already analyzed, use the existing analysis
-      if (data.alreadyAnalyzed) {
+      // Save the analysis to the database on the client side
+      try {
+        // First check if an analysis already exists
+        const { data: existingAnalysis, error: checkError } = await supabase
+          .from("property_analyses")
+          .select("id")
+          .eq("property_id", property.id)
+          .maybeSingle()
+
+        if (existingAnalysis) {
+          // Update existing analysis
+          await supabase
+            .from("property_analyses")
+            .update({
+              analysis_summary: data.analysis.analysis_summary,
+              total_score: data.analysis.total_score,
+              attribute_scores: data.analysis.attribute_scores,
+              pros: data.analysis.pros,
+              cons: data.analysis.cons,
+              investment_rating: data.analysis.investment_rating,
+              value_for_money: data.analysis.value_for_money,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", existingAnalysis.id)
+        } else {
+          // Create new analysis
+          await supabase.from("property_analyses").insert({
+            property_id: property.id,
+            analysis_summary: data.analysis.analysis_summary,
+            total_score: data.analysis.total_score,
+            attribute_scores: data.analysis.attribute_scores,
+            pros: data.analysis.pros,
+            cons: data.analysis.cons,
+            investment_rating: data.analysis.investment_rating,
+            value_for_money: data.analysis.value_for_money,
+          })
+        }
+
+        // Update the property's is_analyzed flag
+        await supabase
+          .from("saved_properties")
+          .update({ is_analyzed: true })
+          .eq("id", property.id)
+          .eq("user_id", user.id)
+
+        // Update the UI with the new analysis
         setProperty({
           ...property,
           is_analyzed: true,
         })
         setAnalysis(data.analysis)
-        return
+      } catch (dbError) {
+        console.error("Error saving analysis to database:", dbError)
+        // Still show the analysis even if saving to DB failed
+        setProperty({
+          ...property,
+          is_analyzed: true,
+        })
+        setAnalysis(data.analysis)
       }
-
-      // Update the UI with the new analysis
-      setProperty({
-        ...property,
-        is_analyzed: true,
-      })
-      setAnalysis(data.analysis)
     } catch (error) {
       console.error("Fel vid analys av fastighet:", error)
       setAnalysisError(error instanceof Error ? error.message : "Kunde inte analysera fastigheten")
