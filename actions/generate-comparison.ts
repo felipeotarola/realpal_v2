@@ -31,79 +31,79 @@ export async function generateAIComparison(properties: PropertyData[]) {
   try {
     // Create the prompt for OpenAI
     const prompt = `
-Compare the following ${properties.length} properties and provide a detailed analysis:
+Jämför följande ${properties.length} fastigheter och ge en detaljerad analys på svenska:
 
 ${properties
   .map(
     (property, index) => `
-PROPERTY ${index + 1}: ${property.title}
-Price: ${property.price}
-Size: ${property.size}
-Rooms: ${property.rooms}
-Location: ${property.location}
-Year Built: ${property.yearBuilt || "Unknown"}
-Monthly Fee: ${property.monthlyFee || "N/A"}
-Features: ${property.features.join(", ")}
-Description: ${property.description}
+FASTIGHET ${index + 1}: ${property.title}
+Pris: ${property.price}
+Storlek: ${property.size}
+Rum: ${property.rooms}
+Plats: ${property.location}
+Byggår: ${property.yearBuilt || "Okänt"}
+Månadsavgift: ${property.monthlyFee || "Ej tillämpligt"}
+Egenskaper: ${property.features.join(", ")}
+Beskrivning: ${property.description}
 ${
   property.analysis
     ? `
-Analysis:
-- Total Score: ${property.analysis.totalScore}/10
-- Investment Rating: ${property.analysis.investmentRating}/10
-- Value For Money: ${property.analysis.valueForMoney}/10
-- Pros: ${property.analysis.pros.join(", ")}
-- Cons: ${property.analysis.cons.join(", ")}
+Analys:
+- Totalbetyg: ${property.analysis.totalScore}/10
+- Investeringsbetyg: ${property.analysis.investmentRating}/10
+- Prisvärdhet: ${property.analysis.valueForMoney}/10
+- Fördelar: ${property.analysis.pros.join(", ")}
+- Nackdelar: ${property.analysis.cons.join(", ")}
 `
-    : "No analysis available"
+    : "Ingen analys tillgänglig"
 }
 `,
   )
   .join("\n")}
 
-Please provide the following in JSON format:
-1. A summary comparison of all properties (2-3 sentences)
-2. A table of key metrics for easy comparison
-3. A "winner" for each category (price, size, location, etc.)
-4. A detailed comparison highlighting the strengths and weaknesses of each property relative to the others
-5. An overall recommendation on which property offers the best value
+Ge följande information i JSON-format:
+1. En sammanfattande jämförelse av alla fastigheter (2-3 meningar)
+2. En tabell med nyckeltal för enkel jämförelse
+3. En "vinnare" för varje kategori (pris, storlek, läge, etc.)
+4. En detaljerad jämförelse som belyser styrkor och svagheter hos varje fastighet i förhållande till de andra
+5. En övergripande rekommendation om vilken fastighet som erbjuder bäst värde
 
-Return ONLY valid JSON in this format:
+Svara ENDAST med giltig JSON i detta format (använd svenska för all text):
 {
-  "summary": "Overall comparison summary",
+  "summary": "Övergripande jämförelsesammanfattning",
   "comparisonTable": [
     {
-      "category": "Price",
+      "category": "Pris",
       "values": [
-        {"propertyIndex": 0, "value": "Property 1 value", "normalized": 7.5},
-        {"propertyIndex": 1, "value": "Property 2 value", "normalized": 8.2},
+        {"propertyIndex": 0, "value": "Fastighet 1 värde", "normalized": 7.5},
+        {"propertyIndex": 1, "value": "Fastighet 2 värde", "normalized": 8.2},
         ...
       ],
       "winner": 1,
-      "notes": "Explanation of the comparison"
+      "notes": "Förklaring av jämförelsen"
     },
     ...
   ],
   "categoryWinners": [
-    {"category": "Price", "winner": 1, "explanation": "Property 2 has the best price because..."},
+    {"category": "Pris", "winner": 1, "explanation": "Fastighet 2 har bäst pris eftersom..."},
     ...
   ],
   "detailedComparison": {
     "property0": {
-      "strengths": ["Strength 1", "Strength 2"],
-      "weaknesses": ["Weakness 1", "Weakness 2"],
+      "strengths": ["Styrka 1", "Styrka 2"],
+      "weaknesses": ["Svaghet 1", "Svaghet 2"],
       "comparedTo": [
-        {"propertyIndex": 1, "advantages": ["Better than property 2 in X"], "disadvantages": ["Worse than property 2 in Y"]}
+        {"propertyIndex": 1, "advantages": ["Bättre än fastighet 2 i X"], "disadvantages": ["Sämre än fastighet 2 i Y"]}
       ]
     },
     ...
   },
   "recommendation": {
     "bestOverallValue": 1,
-    "explanation": "Property 2 offers the best overall value because...",
+    "explanation": "Fastighet 2 erbjuder bäst totala värde eftersom...",
     "bestFor": [
-      {"scenario": "Families", "propertyIndex": 0, "explanation": "Property 1 is best for families because..."},
-      {"scenario": "Investment", "propertyIndex": 1, "explanation": "Property 2 is best for investment because..."}
+      {"scenario": "Familjer", "propertyIndex": 0, "explanation": "Fastighet 1 är bäst för familjer eftersom..."},
+      {"scenario": "Investering", "propertyIndex": 1, "explanation": "Fastighet 2 är bäst för investering eftersom..."}
     ]
   }
 }`
