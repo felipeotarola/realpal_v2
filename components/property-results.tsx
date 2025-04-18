@@ -243,13 +243,13 @@ export function PropertyResults({ results }: PropertyResultsProps) {
   return (
     <div className="space-y-6">
       {metadata.note && (
-        <Alert>
+        <Alert variant="warning" className="border-0 shadow-sm">
           <Info className="h-4 w-4" />
           <AlertDescription>{metadata.note}</AlertDescription>
         </Alert>
       )}
 
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden shadow-lg border-0">
         <div className="relative aspect-video bg-gray-100">
           {images.length > 0 ? (
             <img
@@ -267,7 +267,7 @@ export function PropertyResults({ results }: PropertyResultsProps) {
           )}
         </div>
 
-        <CardHeader>
+        <CardHeader className="pb-0">
           <div className="flex justify-between items-start">
             <div>
               <CardTitle className="text-2xl">{property.title}</CardTitle>
@@ -280,24 +280,24 @@ export function PropertyResults({ results }: PropertyResultsProps) {
           </div>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="pt-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-gray-50 p-3 rounded-md">
+            <div className="bg-gray-50 p-3 rounded-lg shadow-sm">
               <div className="text-sm text-gray-500">Storlek</div>
               <div className="font-medium">{property.size}</div>
             </div>
-            <div className="bg-gray-50 p-3 rounded-md">
+            <div className="bg-gray-50 p-3 rounded-lg shadow-sm">
               <div className="text-sm text-gray-500">Rum</div>
               <div className="font-medium">{property.rooms}</div>
             </div>
             {property.yearBuilt && (
-              <div className="bg-gray-50 p-3 rounded-md">
+              <div className="bg-gray-50 p-3 rounded-lg shadow-sm">
                 <div className="text-sm text-gray-500">Byggår</div>
                 <div className="font-medium">{property.yearBuilt}</div>
               </div>
             )}
             {property.energyRating && (
-              <div className="bg-gray-50 p-3 rounded-md">
+              <div className="bg-gray-50 p-3 rounded-lg shadow-sm">
                 <div className="text-sm text-gray-500">Energiklass</div>
                 <div className="font-medium">{property.energyRating}</div>
               </div>
@@ -314,7 +314,7 @@ export function PropertyResults({ results }: PropertyResultsProps) {
               <h3 className="text-lg font-medium mb-2">Egenskaper</h3>
               <div className="flex flex-wrap gap-2">
                 {property.features.map((feature, index) => (
-                  <Badge key={index} variant="secondary">
+                  <Badge key={index} variant="secondary" className="shadow-sm">
                     {feature}
                   </Badge>
                 ))}
@@ -333,12 +333,11 @@ export function PropertyResults({ results }: PropertyResultsProps) {
         </CardContent>
 
         <CardFooter className="pt-4 border-t flex flex-col space-y-3">
-          {/* Add the Save button here */}
-          <div className="flex justify-between w-full">
+          <div className="flex justify-between w-full gap-3">
             <Button
               variant={saved ? "outline" : "default"}
               size="sm"
-              className="w-[48%]"
+              className="flex-1"
               onClick={handleSave}
               disabled={isSaving}
             >
@@ -356,29 +355,29 @@ export function PropertyResults({ results }: PropertyResultsProps) {
                 </>
               )}
             </Button>
-            <Button variant="outline" size="sm" className="w-[48%]" onClick={handleShare}>
+            <Button variant="outline" size="sm" className="flex-1" onClick={handleShare}>
               <Share2 className="h-4 w-4 mr-2" />
               Dela
             </Button>
           </div>
-          <div className="flex justify-between w-full">
-            <Button variant="outline" size="sm" className="w-[48%]" onClick={() => viewPropertyDetails(property)}>
+          <div className="flex justify-between w-full gap-3">
+            <Button variant="outline" size="sm" className="flex-1" onClick={() => viewPropertyDetails(property)}>
               <ChevronRight className="h-4 w-4 mr-2" />
               Visa detaljer
             </Button>
-            <Button variant="outline" size="sm" className="w-[48%]" asChild>
+            <Button variant="outline" size="sm" className="flex-1" asChild>
               <a href={property.url} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="h-4 w-4 mr-2" />
                 Visa original
               </a>
             </Button>
           </div>
-          <div className="flex justify-between w-full">
-            <ComparisonButton property={property} className="w-[48%]" />
+          <div className="flex justify-between w-full gap-3">
+            <ComparisonButton property={property} className="flex-1" />
             <Button
               variant="ghost"
               size="sm"
-              className="text-red-500 hover:text-red-700 hover:bg-red-50 w-[48%]"
+              className="text-red-500 hover:text-red-700 hover:bg-red-50 flex-1"
               onClick={() => handleDelete(property.id)}
             >
               <Trash2 className="h-4 w-4 mr-2" />
@@ -388,14 +387,14 @@ export function PropertyResults({ results }: PropertyResultsProps) {
         </CardFooter>
       </Card>
 
-      <Tabs defaultValue="images">
-        <TabsList className="grid grid-cols-2 mb-4">
+      <Tabs defaultValue="images" className="mt-8">
+        <TabsList className="grid grid-cols-2 w-full">
           <TabsTrigger value="images">Bilder ({images.length})</TabsTrigger>
           <TabsTrigger value="details">Ytterligare detaljer</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="images">
-          <Card>
+        <TabsContent value="images" className="mt-6">
+          <Card className="border-0 shadow-md">
             <CardHeader>
               <CardTitle>Fastighetsbilder</CardTitle>
             </CardHeader>
@@ -411,8 +410,8 @@ export function PropertyResults({ results }: PropertyResultsProps) {
           </Card>
         </TabsContent>
 
-        <TabsContent value="details">
-          <Card>
+        <TabsContent value="details" className="mt-6">
+          <Card className="border-0 shadow-md">
             <CardHeader>
               <CardTitle>Ytterligare information</CardTitle>
             </CardHeader>

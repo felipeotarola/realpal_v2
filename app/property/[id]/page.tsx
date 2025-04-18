@@ -377,7 +377,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
   return (
     <ProtectedRoute>
       <div className="container mx-auto py-10 px-4">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <div className="flex flex-col mb-6 gap-4">
           <div>
             <h1 className="text-2xl font-bold mb-1">{property.title}</h1>
             <div className="flex items-center text-gray-500">
@@ -386,24 +386,27 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
             </div>
           </div>
 
-          <div className="flex gap-3">
-            <Link href="/saved">
-              <Button variant="outline">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <Link href="/saved" className="col-span-1">
+              <Button variant="outline" className="w-full" size="sm">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Tillbaka
               </Button>
             </Link>
-            <ComparisonButton property={property} />
-            <Button variant="outline" asChild>
-              <a href={property.url} target="_blank" rel="noopener noreferrer">
+            <div className="col-span-1">
+              <ComparisonButton property={property} size="sm" className="w-full" />
+            </div>
+            <Button variant="outline" asChild className="col-span-1" size="sm">
+              <a href={property.url} target="_blank" rel="noopener noreferrer" className="w-full">
                 <ExternalLink className="h-4 w-4 mr-2" />
                 Visa original
               </a>
             </Button>
             <Button
               variant="outline"
-              className="text-red-500 hover:text-red-700 hover:bg-red-50"
+              className="col-span-1 text-red-500 hover:text-red-700 hover:bg-red-50"
               onClick={handleDelete}
+              size="sm"
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Ta bort

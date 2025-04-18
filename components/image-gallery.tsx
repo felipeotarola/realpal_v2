@@ -17,7 +17,7 @@ export function ImageGallery({ images, websiteUrl }: ImageGalleryProps) {
 
   if (images.length === 0) {
     return (
-      <div className="p-4 bg-gray-50 rounded-md text-gray-500 text-center">
+      <div className="p-4 bg-gray-50 rounded-lg text-gray-500 text-center">
         Inga bilder hittades för denna fastighet.
       </div>
     )
@@ -44,11 +44,11 @@ export function ImageGallery({ images, websiteUrl }: ImageGalleryProps) {
 
   return (
     <>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
         {images.map((image, index) => (
           <Card
             key={index}
-            className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+            className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow border-0 shadow-sm rounded-md"
             onClick={() => handleImageClick(image, index)}
           >
             <div className="relative aspect-square bg-gray-100">
@@ -63,7 +63,7 @@ export function ImageGallery({ images, websiteUrl }: ImageGalleryProps) {
                 }}
               />
               <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 bg-black/30 transition-opacity">
-                <ZoomIn className="text-white h-8 w-8" />
+                <ZoomIn className="text-white h-6 w-6" />
               </div>
             </div>
           </Card>
@@ -71,23 +71,23 @@ export function ImageGallery({ images, websiteUrl }: ImageGalleryProps) {
       </div>
 
       <Dialog open={!!selectedImage} onOpenChange={(open) => !open && setSelectedImage(null)}>
-        <DialogContent className="max-w-5xl w-[95vw]">
-          <DialogHeader>
+        <DialogContent className="max-w-5xl w-[95vw] p-0 border-0 overflow-hidden">
+          <DialogHeader className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/70 to-transparent p-4 text-white">
             <DialogTitle>
               Fastighetsbild {selectedIndex + 1} av {images.length}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-gray-200">
               <a
                 href={selectedImage || "#"}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-500 hover:underline"
+                className="text-blue-300 hover:underline"
               >
                 Öppna originalbild
               </a>
             </DialogDescription>
           </DialogHeader>
-          <div className="relative w-full h-[70vh] bg-gray-100 rounded-md overflow-hidden">
+          <div className="relative w-full h-[80vh] bg-black overflow-hidden">
             {selectedImage && (
               <img
                 src={selectedImage || "/placeholder.svg"}
@@ -106,7 +106,7 @@ export function ImageGallery({ images, websiteUrl }: ImageGalleryProps) {
                 size="icon"
                 onClick={handlePrevious}
                 disabled={selectedIndex === 0}
-                className="bg-white/80 hover:bg-white"
+                className="bg-white/80 hover:bg-white rounded-full h-12 w-12"
               >
                 <ChevronLeft className="h-6 w-6" />
               </Button>
@@ -115,7 +115,7 @@ export function ImageGallery({ images, websiteUrl }: ImageGalleryProps) {
                 size="icon"
                 onClick={handleNext}
                 disabled={selectedIndex === images.length - 1}
-                className="bg-white/80 hover:bg-white"
+                className="bg-white/80 hover:bg-white rounded-full h-12 w-12"
               >
                 <ChevronRight className="h-6 w-6" />
               </Button>

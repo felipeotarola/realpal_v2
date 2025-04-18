@@ -32,7 +32,11 @@ export function NavBar() {
         </Link>
 
         {/* Mobile menu button */}
-        <button className="block md:hidden" onClick={toggleMenu}>
+        <button
+          onClick={toggleMenu}
+          className="block md:hidden p-2 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200"
+          aria-label={isMenuOpen ? "Stäng meny" : "Öppna meny"}
+        >
           {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
 
@@ -98,18 +102,34 @@ export function NavBar() {
         {isMenuOpen && (
           <div className="absolute top-16 left-0 right-0 z-50 bg-white border-b shadow-lg md:hidden">
             <div className="flex flex-col p-4 space-y-4">
-              <Link href="/" className="text-gray-700 hover:text-gray-900" onClick={toggleMenu}>
+              <Link
+                href="/"
+                className="block px-4 py-3 text-base hover:bg-gray-100 rounded-md text-gray-700 hover:text-gray-900"
+                onClick={toggleMenu}
+              >
                 Hem
               </Link>
               {user ? (
                 <>
-                  <Link href="/saved" className="text-gray-700 hover:text-gray-900" onClick={toggleMenu}>
+                  <Link
+                    href="/saved"
+                    className="block px-4 py-3 text-base hover:bg-gray-100 rounded-md text-gray-700 hover:text-gray-900"
+                    onClick={toggleMenu}
+                  >
                     Sparade Fastigheter
                   </Link>
-                  <Link href="/saved-comparisons" className="text-gray-700 hover:text-gray-900" onClick={toggleMenu}>
+                  <Link
+                    href="/saved-comparisons"
+                    className="block px-4 py-3 text-base hover:bg-gray-100 rounded-md text-gray-700 hover:text-gray-900"
+                    onClick={toggleMenu}
+                  >
                     Jämförelser
                   </Link>
-                  <Link href="/profile" className="text-gray-700 hover:text-gray-900" onClick={toggleMenu}>
+                  <Link
+                    href="/profile"
+                    className="block px-4 py-3 text-base hover:bg-gray-100 rounded-md text-gray-700 hover:text-gray-900"
+                    onClick={toggleMenu}
+                  >
                     Profil
                   </Link>
                   <Button

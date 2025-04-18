@@ -10,9 +10,15 @@ interface ComparisonButtonProps {
   property: any
   variant?: "default" | "outline" | "ghost"
   size?: "default" | "sm" | "lg" | "icon"
+  className?: string
 }
 
-export function ComparisonButton({ property, variant = "outline", size = "sm" }: ComparisonButtonProps) {
+export function ComparisonButton({
+  property,
+  variant = "outline",
+  size = "sm",
+  className = "",
+}: ComparisonButtonProps) {
   const { addProperty, removeProperty, isSelected } = useComparison()
   const [showTooltip, setShowTooltip] = useState(false)
 
@@ -38,7 +44,7 @@ export function ComparisonButton({ property, variant = "outline", size = "sm" }:
             variant={selected ? "default" : variant}
             size={size}
             onClick={handleClick}
-            className={selected ? "bg-green-600 hover:bg-green-700" : ""}
+            className={`${selected ? "bg-green-600 hover:bg-green-700" : ""} ${className}`}
           >
             {selected ? (
               <>

@@ -185,23 +185,25 @@ export default function ComparePage() {
   return (
     <ProtectedRoute>
       <div className="container mx-auto py-10 px-4">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-          <div className="flex items-center">
-            <Link href="/saved">
-              <Button variant="outline" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Tillbaka
-              </Button>
-            </Link>
-            <h1 className="text-2xl font-bold ml-4">
-              {currentComparisonId && currentTitle ? currentTitle : "Jämför fastigheter"}
-            </h1>
+        <div className="flex flex-col mb-6 gap-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <Link href="/saved">
+                <Button variant="outline" size="sm" className="px-2">
+                  <ArrowLeft className="h-4 w-4" />
+                  <span className="sr-only">Tillbaka</span>
+                </Button>
+              </Link>
+              <h1 className="text-xl sm:text-2xl font-bold ml-2 sm:ml-4 truncate">
+                {currentComparisonId && currentTitle ? currentTitle : "Jämför fastigheter"}
+              </h1>
+            </div>
           </div>
 
-          <div className="flex gap-3">
-            <Button variant="outline" size="sm" onClick={clearComparison}>
-              <X className="h-4 w-4 mr-2" />
-              Rensa jämförelse
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={clearComparison} className="w-full sm:w-auto">
+              <X className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
+              <span className="whitespace-nowrap">Rensa</span>
             </Button>
 
             {user && (
@@ -219,23 +221,24 @@ export default function ComparePage() {
                   }
                   setSaveDialogOpen(true)
                 }}
+                className="w-full sm:w-auto"
               >
-                <Save className="h-4 w-4 mr-2" />
-                {currentComparisonId ? "Uppdatera" : "Spara"} jämförelse
+                <Save className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
+                <span className="whitespace-nowrap">{currentComparisonId ? "Uppdatera" : "Spara"}</span>
               </Button>
             )}
 
             {currentComparisonId && (
-              <Button variant="outline" size="sm" onClick={() => setNoteDialogOpen(true)}>
-                <History className="h-4 w-4 mr-2" />
-                Lägg till anteckning
+              <Button variant="outline" size="sm" onClick={() => setNoteDialogOpen(true)} className="w-full sm:w-auto">
+                <History className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
+                <span className="whitespace-nowrap">Anteckning</span>
               </Button>
             )}
 
             {!aiComparison && !loadingAiComparison && (
-              <Button size="sm" onClick={generateAiComparison}>
-                <Brain className="h-4 w-4 mr-2" />
-                Generera AI-jämförelse
+              <Button size="sm" onClick={generateAiComparison} className="w-full sm:w-auto">
+                <Brain className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
+                <span className="whitespace-nowrap">AI-analys</span>
               </Button>
             )}
           </div>
@@ -252,7 +255,7 @@ export default function ComparePage() {
           </Card>
         )}
 
-        {aiComparison && (
+        {aiComparison && selectedProperties.length >= 2 && (
           <Card className="mb-6">
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -272,7 +275,12 @@ export default function ComparePage() {
                   <div className="flex items-center mb-2">
                     <Trophy className="h-5 w-5 mr-2 text-yellow-500" />
                     <span className="font-medium">
-                      Bästa valet: {selectedProperties[aiComparison.recommendation.bestOverallValue].title}
+                      Bästa valet:{" "}
+                      {aiComparison.recommendation.bestOverallValue !== undefined &&
+                      aiComparison.recommendation.bestOverallValue >= 0 &&
+                      aiComparison.recommendation.bestOverallValue < selectedProperties.length
+                        ? selectedProperties[aiComparison.recommendation.bestOverallValue].title
+                        : "Okänd fastighet"}
                     </span>
                   </div>
                   <p className="text-gray-700">{aiComparison.recommendation.explanation}</p>
@@ -298,18 +306,26 @@ export default function ComparePage() {
 
               <h3 className="text-lg font-medium mb-3">Kategorimarknader</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                {aiComparison.categoryWinners.map((winner: any, index: number) => (
-                  <div key={index} className="bg-gray-50 p-3 rounded-md">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm text-gray-500">{winner.category}</span>
-                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                        Vinnare
-                      </Badge>
+                {aiComparison.categoryWinners.map((winner: any, index: number) => {
+                  // Check if the winner index is valid
+                  const winnerProperty =
+                    winner.winner !== undefined && winner.winner >= 0 && winner.winner < selectedProperties.length
+                      ? selectedProperties[winner.winner]
+                      : null
+
+                  return (
+                    <div key={index} className="bg-gray-50 p-3 rounded-md">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm text-gray-500">{winner.category}</span>
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                          Vinnare
+                        </Badge>
+                      </div>
+                      <div className="font-medium">{winnerProperty ? winnerProperty.title : "Okänd fastighet"}</div>
+                      <p className="text-xs text-gray-600 mt-1">{winner.explanation}</p>
                     </div>
-                    <div className="font-medium">{selectedProperties[winner.winner].title}</div>
-                    <p className="text-xs text-gray-600 mt-1">{winner.explanation}</p>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </CardContent>
           </Card>
@@ -364,10 +380,18 @@ export default function ComparePage() {
         )}
 
         <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-6">
-            <TabsTrigger value="overview">Översikt</TabsTrigger>
-            <TabsTrigger value="details">Detaljerad jämförelse</TabsTrigger>
-            {aiComparison && <TabsTrigger value="analysis">AI-analys</TabsTrigger>}
+          <TabsList className="mb-6 w-full flex">
+            <TabsTrigger value="overview" className="flex-1">
+              Översikt
+            </TabsTrigger>
+            <TabsTrigger value="details" className="flex-1">
+              Detaljer
+            </TabsTrigger>
+            {aiComparison && (
+              <TabsTrigger value="analysis" className="flex-1">
+                AI-analys
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="overview">
@@ -412,17 +436,17 @@ export default function ComparePage() {
                             <MapPin className="h-3.5 w-3.5 text-gray-500 mr-1" />
                             <span className="text-xs text-gray-500 truncate">{property.location}</span>
                           </div>
-                          <div className="flex justify-between mt-2">
-                            <Link href={`/property/${property.id}`}>
-                              <Button variant="outline" size="sm" className="text-xs h-7 px-2">
-                                <ChevronRight className="h-3 w-3 mr-1" />
-                                Detaljer
+                          <div className="flex justify-between mt-2 gap-1">
+                            <Link href={`/property/${property.id}`} className="flex-1">
+                              <Button variant="outline" size="sm" className="text-xs h-7 w-full">
+                                <ChevronRight className="h-3 w-3 mr-1 flex-shrink-0" />
+                                <span className="truncate">Detaljer</span>
                               </Button>
                             </Link>
-                            <a href={property.url} target="_blank" rel="noopener noreferrer">
-                              <Button variant="outline" size="sm" className="text-xs h-7 px-2">
-                                <ExternalLink className="h-3 w-3 mr-1" />
-                                Original
+                            <a href={property.url} target="_blank" rel="noopener noreferrer" className="flex-1">
+                              <Button variant="outline" size="sm" className="text-xs h-7 w-full">
+                                <ExternalLink className="h-3 w-3 mr-1 flex-shrink-0" />
+                                <span className="truncate">Original</span>
                               </Button>
                             </a>
                           </div>
@@ -690,26 +714,37 @@ export default function ComparePage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {aiComparison.comparisonTable.map((row: any, rowIndex: number) => (
-                            <TableRow key={rowIndex}>
-                              <TableCell className="font-medium">{row.category}</TableCell>
-                              {row.values.map((cell: any, cellIndex: number) => (
-                                <TableCell
-                                  key={cellIndex}
-                                  className={`${row.winner === cell.propertyIndex ? getWinnerBackground(true) : ""}`}
-                                >
-                                  <div className="flex items-center">
-                                    {row.winner === cell.propertyIndex && (
-                                      <Trophy className="h-4 w-4 text-yellow-500 mr-1" />
-                                    )}
-                                    <span>{cell.value}</span>
-                                  </div>
-                                  {cell.normalized && <Progress value={cell.normalized * 10} className="h-1.5 mt-1" />}
-                                </TableCell>
-                              ))}
-                              <TableCell className="text-sm text-gray-600">{row.notes}</TableCell>
-                            </TableRow>
-                          ))}
+                          {aiComparison.comparisonTable.map((row: any, rowIndex: number) => {
+                            // Ensure row.winner is valid
+                            const hasValidWinner =
+                              row.winner !== undefined && row.winner >= 0 && row.winner < selectedProperties.length
+
+                            return (
+                              <TableRow key={rowIndex}>
+                                <TableCell className="font-medium">{row.category}</TableCell>
+                                {row.values.map((cell: any, cellIndex: number) => {
+                                  // Check if this cell is the winner
+                                  const isWinner = hasValidWinner && row.winner === cell.propertyIndex
+
+                                  return (
+                                    <TableCell
+                                      key={cellIndex}
+                                      className={`${isWinner ? getWinnerBackground(true) : ""}`}
+                                    >
+                                      <div className="flex items-center">
+                                        {isWinner && <Trophy className="h-4 w-4 text-yellow-500 mr-1" />}
+                                        <span>{cell.value}</span>
+                                      </div>
+                                      {cell.normalized && (
+                                        <Progress value={cell.normalized * 10} className="h-1.5 mt-1" />
+                                      )}
+                                    </TableCell>
+                                  )
+                                })}
+                                <TableCell className="text-sm text-gray-600">{row.notes}</TableCell>
+                              </TableRow>
+                            )
+                          })}
                         </TableBody>
                       </Table>
                     </div>
@@ -726,7 +761,16 @@ export default function ComparePage() {
                       {Object.entries(aiComparison.detailedComparison).map(
                         ([key, value]: [string, any], index: number) => {
                           const propertyIndex = Number.parseInt(key.replace("property", ""))
-                          const property = selectedProperties[propertyIndex]
+                          const property =
+                            propertyIndex !== undefined &&
+                            propertyIndex >= 0 &&
+                            propertyIndex < selectedProperties.length
+                              ? selectedProperties[propertyIndex]
+                              : null
+
+                          if (!property) {
+                            return null // Skip rendering this card if property is not found
+                          }
 
                           return (
                             <Card key={index} className="border-2">
@@ -762,7 +806,17 @@ export default function ComparePage() {
                                   <div>
                                     <h4 className="font-medium mb-2">Jämfört med andra fastigheter:</h4>
                                     {value.comparedTo.map((comparison: any, i: number) => {
-                                      const comparedProperty = selectedProperties[comparison.propertyIndex]
+                                      const comparedProperty =
+                                        comparison.propertyIndex !== undefined &&
+                                        comparison.propertyIndex >= 0 &&
+                                        comparison.propertyIndex < selectedProperties.length
+                                          ? selectedProperties[comparison.propertyIndex]
+                                          : null
+
+                                      if (!comparedProperty) {
+                                        return null // Skip this comparison if the property is not found
+                                      }
+
                                       return (
                                         <div key={i} className="mb-3 bg-gray-50 p-3 rounded-md">
                                           <h5 className="text-sm font-medium mb-1">
@@ -848,11 +902,11 @@ export default function ComparePage() {
                 />
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setSaveDialogOpen(false)}>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button variant="outline" onClick={() => setSaveDialogOpen(false)} className="w-full sm:w-auto">
                 Avbryt
               </Button>
-              <Button onClick={handleSaveComparison} disabled={isSaving || !title.trim()}>
+              <Button onClick={handleSaveComparison} disabled={isSaving || !title.trim()} className="w-full sm:w-auto">
                 {isSaving ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -914,8 +968,8 @@ export default function ComparePage() {
                 </div>
               )}
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setNoteDialogOpen(false)}>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button variant="outline" onClick={() => setNoteDialogOpen(false)} className="w-full sm:w-auto">
                 Avbryt
               </Button>
               <Button
@@ -925,6 +979,7 @@ export default function ComparePage() {
                   handleAddNote(propertyId)
                 }}
                 disabled={!noteText.trim()}
+                className="w-full sm:w-auto"
               >
                 {isSaving ? (
                   <>

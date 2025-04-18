@@ -41,7 +41,7 @@ export function CrawlerResults({ results }: CrawlerResultsProps) {
   return (
     <div className="space-y-6">
       {isAIAnalysisOnly && (
-        <Alert variant="warning">
+        <Alert variant="warning" className="border-0 shadow-sm">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Access Restricted</AlertTitle>
           <AlertDescription>
@@ -50,7 +50,7 @@ export function CrawlerResults({ results }: CrawlerResultsProps) {
         </Alert>
       )}
 
-      <Card>
+      <Card className="shadow-md border-0">
         <CardHeader>
           <CardTitle>Crawl Results</CardTitle>
           <CardDescription>
@@ -78,12 +78,12 @@ export function CrawlerResults({ results }: CrawlerResultsProps) {
       </Card>
 
       {results.screenshot && (
-        <Card>
+        <Card className="shadow-md border-0 overflow-hidden">
           <CardHeader>
             <CardTitle>Screenshot</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="border rounded-md overflow-hidden">
+          <CardContent className="p-0">
+            <div className="overflow-hidden">
               <img
                 src={results.screenshot || "/placeholder.svg"}
                 alt={`Screenshot of ${results.url}`}
@@ -94,8 +94,8 @@ export function CrawlerResults({ results }: CrawlerResultsProps) {
         </Card>
       )}
 
-      <Tabs defaultValue="summary">
-        <TabsList className="grid grid-cols-4 mb-4">
+      <Tabs defaultValue="summary" className="mt-8">
+        <TabsList className="grid grid-cols-4 w-full">
           <TabsTrigger value="summary">AI Summary</TabsTrigger>
           <TabsTrigger value="content">Content</TabsTrigger>
           <TabsTrigger value="images" disabled={!hasImages}>
@@ -104,8 +104,8 @@ export function CrawlerResults({ results }: CrawlerResultsProps) {
           <TabsTrigger value="analysis">Visual Analysis</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="summary">
-          <Card>
+        <TabsContent value="summary" className="mt-6">
+          <Card className="shadow-md border-0">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Content Summary</CardTitle>
               <Button
@@ -129,8 +129,8 @@ export function CrawlerResults({ results }: CrawlerResultsProps) {
           </Card>
         </TabsContent>
 
-        <TabsContent value="content">
-          <Card>
+        <TabsContent value="content" className="mt-6">
+          <Card className="shadow-md border-0">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Raw Content</CardTitle>
               <Button variant="outline" size="sm" onClick={() => copyToClipboard(results.content, "content")}>
@@ -152,8 +152,8 @@ export function CrawlerResults({ results }: CrawlerResultsProps) {
           </Card>
         </TabsContent>
 
-        <TabsContent value="images">
-          <Card>
+        <TabsContent value="images" className="mt-6">
+          <Card className="shadow-md border-0">
             <CardHeader>
               <CardTitle>Images from Page</CardTitle>
               <CardDescription>
@@ -173,8 +173,8 @@ export function CrawlerResults({ results }: CrawlerResultsProps) {
           </Card>
         </TabsContent>
 
-        <TabsContent value="analysis">
-          <Card>
+        <TabsContent value="analysis" className="mt-6">
+          <Card className="shadow-md border-0">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Visual Analysis</CardTitle>
               <Button
@@ -211,8 +211,8 @@ function markdownToHtml(markdown: string): string {
     .replace(/^> (.*$)/gim, "<blockquote>$1</blockquote>")
     .replace(/\*\*(.*)\*\*/gim, "<strong>$1</strong>")
     .replace(/\*(.*)\*/gim, "<em>$1</em>")
-    .replace(/!\[(.*?)\]$$(.*?)$$/gim, '<img alt="$1" src="$2" />')
-    .replace(/\[(.*?)\]$$(.*?)$$/gim, '<a href="$2">$1</a>')
+    .replace(/!\[(.*?)\]$(.*?)$/gim, '<img alt="$1" src="$2" />')
+    .replace(/\[(.*?)\]$(.*?)$/gim, '<a href="$2">$1</a>')
     .replace(/\n$/gim, "<br />")
     .replace(/^\s*\n/gm, "<br />")
     .replace(/^\s*(-|\*)\s(.*)/gim, "<ul><li>$2</li></ul>")

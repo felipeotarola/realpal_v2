@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { PropertyResults } from "./property-results"
-import { Loader2, Home } from "lucide-react"
+import { Loader2, Search } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export function CrawlerForm() {
@@ -56,17 +56,17 @@ export function CrawlerForm() {
 
   return (
     <div className="space-y-8">
-      <Card>
-        <CardHeader>
-          <CardTitle>RealPal</CardTitle>
-          <CardDescription>Ange en URL till en fastighetsannons för att hämta och spara detaljer</CardDescription>
+      <Card className="shadow-md border-0">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-2xl">Fastighetsanalys</CardTitle>
+          <CardDescription>Analysera och spara fastighetsannonser från webben</CardDescription>
         </CardHeader>
         <CardContent>
-          <Alert className="mb-4">
-            <Home className="h-4 w-4" />
+          <Alert className="mb-6 bg-blue-50 border-blue-100 text-blue-800">
+            <Search className="h-4 w-4" />
             <AlertDescription>
-              Fungerar med de flesta fastighetsannonswebbplatser. Ange URL:en till en lägenhet eller husannons du är
-              intresserad av.
+              Klistra in en URL till en fastighetsannons från Hemnet, Booli eller andra fastighetswebbplatser för att
+              analysera och spara den.
             </AlertDescription>
           </Alert>
 
@@ -75,27 +75,29 @@ export function CrawlerForm() {
               <label htmlFor="url" className="text-sm font-medium">
                 URL till fastighetsannons
               </label>
-              <Input
-                id="url"
-                type="url"
-                placeholder="https://www.hemnet.se/bostad/..."
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                required
-                className="w-full"
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="url"
+                  type="url"
+                  placeholder="https://www.hemnet.se/bostad/..."
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  required
+                  className="w-full shadow-sm"
+                />
+                <Button type="submit" disabled={isLoading} className="px-6">
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Hämtar...
+                    </>
+                  ) : (
+                    "Hämta"
+                  )}
+                </Button>
+              </div>
               <p className="text-xs text-gray-500">Prova URL:er från Hemnet, Booli eller andra fastighetswebbplatser</p>
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Hämtar fastighetsdetaljer...
-                </>
-              ) : (
-                "Hämta fastighetsdetaljer"
-              )}
-            </Button>
           </form>
         </CardContent>
       </Card>
