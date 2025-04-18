@@ -98,7 +98,7 @@ export function AIChatAssistant({ propertyContext }: { propertyContext?: string 
       {/* Floating button */}
       <Button
         onClick={toggleDrawer}
-        className="fixed bottom-6 right-6 rounded-full w-14 h-14 shadow-lg z-50 p-0 flex items-center justify-center"
+        className="fixed bottom-16 right-6 rounded-full w-14 h-14 shadow-lg z-50 p-0 flex items-center justify-center"
       >
         {isOpen ? <X size={24} /> : <MessageCircle size={24} />}
       </Button>
