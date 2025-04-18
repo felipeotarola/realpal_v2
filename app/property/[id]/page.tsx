@@ -292,7 +292,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to analyze property")
+        throw new Error(errorData.error || "Kunde inte analysera fastigheten")
       }
 
       const data = await response.json()
@@ -349,7 +349,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
         })
         setAnalysis(data.analysis)
       } catch (dbError) {
-        console.error("Error saving analysis to database:", dbError)
+        console.error("Fel vid sparande av analys i databasen:", dbError)
         // Still show the analysis even if saving to DB failed
         setProperty({
           ...property,

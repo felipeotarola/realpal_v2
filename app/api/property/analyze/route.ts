@@ -3,9 +3,9 @@ import { generateText } from "ai"
 import { openai } from "@ai-sdk/openai"
 
 export const dynamic = "force-dynamic"
-export const maxDuration = 60 // 60 seconds timeout
+export const maxDuration = 60 // 60 sekunder timeout
 
-// Define attributes to assess
+// Definiera attribut som ska bedömas
 const ATTRIBUTES = [
   { name: "ljus", description: "Mängden naturligt ljus i bostaden" },
   { name: "planlösning", description: "Hur väl planerad och funktionell planlösningen är" },
@@ -23,13 +23,13 @@ export async function POST(request: Request) {
     const { propertyId, userId, propertyData } = await request.json()
 
     if (!propertyId || !userId || !propertyData) {
-      return NextResponse.json({ error: "Missing required data" }, { status: 400 })
+      return NextResponse.json({ error: "Obligatoriska data saknas" }, { status: 400 })
     }
 
-    // Create a prompt for OpenAI
+    // Skapa en prompt för OpenAI på svenska
     const prompt = `
-Du är en erfaren fastighetsvärderare och inredningsarkitekt med expertis inom fastighetsanalys.
-Analysera följande fastighet och ge betyg (1-10) för varje attribut samt en kort kommentar.
+Du är en erfaren svensk fastighetsvärderare och inredningsarkitekt med expertis inom fastighetsanalys.
+Analysera följande fastighet och ge betyg (1-10) för varje attribut samt en kort kommentar på svenska.
 
 FASTIGHETSINFORMATION:
 Titel: ${propertyData.title}
@@ -53,9 +53,9 @@ ATTRIBUT ATT BEDÖMA (skala 1-10):
 ${ATTRIBUTES.map((attr) => `- ${attr.name}: ${attr.description}`).join("\n")}
 
 Ge också:
-1. En kort sammanfattning av fastigheten (max 3 meningar)
-2. Tre fördelar med fastigheten
-3. Tre nackdelar eller saker att tänka på
+1. En kort sammanfattning av fastigheten på svenska (max 3 meningar)
+2. Tre fördelar med fastigheten på svenska
+3. Tre nackdelar eller saker att tänka på på svenska
 4. Ett investeringsbetyg (1-10) som indikerar om detta är en bra investering
 5. Ett prisvärdhet-betyg (1-10) som indikerar om priset är rimligt för vad man får
 
@@ -72,26 +72,28 @@ Svara ENDAST i följande JSON-format:
   "investmentRating": 7,
   "valueForMoney": 6
 }
+
+VIKTIGT: Alla texter ska vara på svenska. Använd svenska termer och uttryck som är relevanta för fastighetsmarknaden.
 `
 
-    // Generate analysis using OpenAI
+    // Generera analys med OpenAI
     const { text } = await generateText({
       model: openai("gpt-4o"),
       prompt: prompt,
       maxTokens: 2000,
     })
 
-    // Extract JSON from the response
+    // Extrahera JSON från svaret
     const jsonMatch = text.match(/\{[\s\S]*\}/)
     if (!jsonMatch) {
-      return NextResponse.json({ error: "Could not extract JSON from AI response" }, { status: 500 })
+      return NextResponse.json({ error: "Kunde inte extrahera JSON från AI-svaret" }, { status: 500 })
     }
 
     const analysisResult = JSON.parse(jsonMatch[0])
 
-    // Return the analysis result without saving to database
+    // Returnera analysresultatet utan att spara i databasen
     return NextResponse.json({
-      message: "Analysis completed successfully",
+      message: "Analys slutförd",
       analysis: {
         property_id: propertyId,
         analysis_summary: analysisResult.summary,
@@ -106,7 +108,7 @@ Svara ENDAST i följande JSON-format:
       },
     })
   } catch (error) {
-    console.error("Error analyzing property:", error)
-    return NextResponse.json({ error: "Failed to analyze property" }, { status: 500 })
+    console.error("Fel vid analys av fastighet:", error)
+    return NextResponse.json({ error: "Kunde inte analysera fastigheten" }, { status: 500 })
   }
 }
