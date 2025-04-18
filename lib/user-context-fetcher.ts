@@ -16,6 +16,13 @@ export interface ComparisonContext {
   propertyTitles: string[]
 }
 
+export interface UserPreference {
+  featureId: string
+  featureLabel: string
+  value: any
+  importance: number
+}
+
 export async function fetchUserContext(userId: string) {
   try {
     // Hämta sparade fastigheter
@@ -67,15 +74,45 @@ export async function fetchUserContext(userId: string) {
       }
     }
 
+    // Hämta användarens preferenser
+    const { data: userPreferences, error: prefError } = await supabase
+      .from("user_property_requirements")
+      .select("feature_id, value, importance")
+      .eq("user_id", userId)
+
+    if (prefError) throw prefError
+
+    // Hämta egenskapsinformation för att få etiketter
+    const { data: features, error: featError } = await supabase.from("property_features").select("id, label")
+
+    if (featError) throw featError
+
+    // Kombinera preferenser med egenskapsetiketter
+    const preferences: UserPreference[] =
+      userPreferences?.map((pref) => {
+        const feature = features?.find((f) => f.id === pref.feature_id)
+        return {
+          featureId: pref.feature_id,
+          featureLabel: feature?.label || pref.feature_id,
+          value: pref.value.value !== undefined ? pref.value.value : pref.value,
+          importance: pref.importance,
+        }
+      }) || []
+
+    // Filtrera bort preferenser med importance = 0 (inte viktiga)
+    const significantPreferences = preferences.filter((pref) => pref.importance > 0)
+
     return {
       savedProperties: savedProperties || [],
       comparisons: enhancedComparisons,
+      preferences: significantPreferences,
     }
   } catch (error) {
     console.error("Error fetching user context:", error)
     return {
       savedProperties: [],
       comparisons: [],
+      preferences: [],
     }
   }
 }
@@ -84,6 +121,7 @@ export async function fetchUserContext(userId: string) {
 export function formatUserContextForPrompt(
   savedProperties: SavedPropertyContext[],
   comparisons: ComparisonContext[],
+  preferences: UserPreference[],
 ): string {
   let contextString = ""
 
@@ -100,7 +138,57 @@ export function formatUserContextForPrompt(
     comparisons.forEach((comparison, index) => {
       contextString += `${index + 1}. ${comparison.title} - Jämför: ${comparison.propertyTitles.join(", ")}\n`
     })
+    contextString += "\n"
+  }
+
+  if (preferences.length > 0) {
+    contextString += "ANVÄNDARENS PREFERENSER:\n"
+
+    // Gruppera preferenser efter viktighet
+    const mustHave = preferences.filter((p) => p.importance === 4)
+    const veryImportant = preferences.filter((p) => p.importance === 3)
+    const somewhatImportant = preferences.filter((p) => p.importance === 2)
+    const niceToHave = preferences.filter((p) => p.importance === 1)
+
+    if (mustHave.length > 0) {
+      contextString += "Måste ha:\n"
+      mustHave.forEach((pref) => {
+        contextString += `- ${pref.featureLabel}: ${formatPreferenceValue(pref.value)}\n`
+      })
+    }
+
+    if (veryImportant.length > 0) {
+      contextString += "Mycket viktigt:\n"
+      veryImportant.forEach((pref) => {
+        contextString += `- ${pref.featureLabel}: ${formatPreferenceValue(pref.value)}\n`
+      })
+    }
+
+    if (somewhatImportant.length > 0) {
+      contextString += "Ganska viktigt:\n"
+      somewhatImportant.forEach((pref) => {
+        contextString += `- ${pref.featureLabel}: ${formatPreferenceValue(pref.value)}\n`
+      })
+    }
+
+    if (niceToHave.length > 0) {
+      contextString += "Trevligt att ha:\n"
+      niceToHave.forEach((pref) => {
+        contextString += `- ${pref.featureLabel}: ${formatPreferenceValue(pref.value)}\n`
+      })
+    }
   }
 
   return contextString
+}
+
+// Hjälpfunktion för att formatera preferensvärden
+function formatPreferenceValue(value: any): string {
+  if (typeof value === "boolean") {
+    return value ? "Ja" : "Nej"
+  }
+  if (typeof value === "number") {
+    return value.toString()
+  }
+  return String(value)
 }

@@ -10,6 +10,7 @@ import { getAssistantSystemPrompt } from "@/lib/ai-assistant-prompt"
 import { MessageCircle, X, Send, Loader2 } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { fetchUserContext, formatUserContextForPrompt } from "@/lib/user-context-fetcher"
+import { parseMessage } from "@/lib/chat-parser"
 
 export function AIChatAssistant({ propertyContext }: { propertyContext?: string }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -27,8 +28,8 @@ export function AIChatAssistant({ propertyContext }: { propertyContext?: string 
 
       setIsLoadingContext(true)
       try {
-        const { savedProperties, comparisons } = await fetchUserContext(user.id)
-        const contextString = formatUserContextForPrompt(savedProperties, comparisons)
+        const { savedProperties, comparisons, preferences } = await fetchUserContext(user.id)
+        const contextString = formatUserContextForPrompt(savedProperties, comparisons, preferences)
         setUserContextString(contextString)
       } catch (error) {
         console.error("Failed to load user context:", error)
@@ -135,7 +136,7 @@ export function AIChatAssistant({ propertyContext }: { propertyContext?: string 
                       message.role === "user" ? "bg-blue-500 text-white" : "bg-gray-100 text-gray-800"
                     }`}
                   >
-                    {message.content}
+                    {message.role === "assistant" ? parseMessage(message.content) : message.content}
                   </div>
                 </div>
               ))}
