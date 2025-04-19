@@ -2,8 +2,10 @@
 
 import { CrawlerForm } from "@/components/crawler-form"
 import { useAuth } from "@/contexts/auth-context"
+import { Suspense } from "react"
 
-export default function Home() {
+// Create a client component that uses auth
+function HomeContent() {
   const { user } = useAuth()
 
   return (
@@ -18,5 +20,14 @@ export default function Home() {
         <CrawlerForm />
       </div>
     </main>
+  )
+}
+
+// Create a server component wrapper
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="container mx-auto py-10 px-4 text-center">Loading...</div>}>
+      <HomeContent />
+    </Suspense>
   )
 }

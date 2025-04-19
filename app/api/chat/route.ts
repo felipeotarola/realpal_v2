@@ -1,32 +1,29 @@
 import { openai } from "@ai-sdk/openai"
-import { streamText } from "ai"
-import { NextResponse } from "next/server"
+import { streamText, type Message } from "ai"
 
-export const runtime = "nodejs"
-export const maxDuration = 30 // 30 seconds max duration
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30
 
 export async function POST(req: Request) {
-  try {
-    const { messages, systemMessage } = await req.json()
+  const { messages }: { messages: Message[] } = await req.json()
 
-    // Create a system message if provided
-    const finalMessages = systemMessage ? [{ role: "system", content: systemMessage }, ...messages] : messages
+  // Check if we have any image attachments
+  const hasImageAttachments = messages.some((message) =>
+    message.experimental_attachments?.some((attachment) => attachment?.contentType?.startsWith("image/")),
+  )
 
-    // Use the AI SDK to stream the response
-    const result = streamText({
-      model: openai.responses("gpt-4o"),
-      messages: finalMessages,
-      tools: {
-        web_search_preview: openai.tools.webSearchPreview({
-          searchContextSize: "high",
-        }),
-      },
-    })
+  console.log("Processing chat request with images:", hasImageAttachments)
 
-    // Return the streamed response
-    return result.toDataStreamResponse()
-  } catch (error) {
-    console.error("Error in chat API:", error)
-    return NextResponse.json({ error: "Failed to process chat request" }, { status: 500 })
-  }
+  // Use the OpenAI Responses API for all requests
+  const result = streamText({
+    model: openai.responses("gpt-4o"),
+    messages,
+    tools: {
+      web_search_preview: openai.tools.webSearchPreview({
+        searchContextSize: "high",
+      }),
+    },
+  })
+
+  return result.toDataStreamResponse()
 }

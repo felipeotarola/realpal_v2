@@ -7,10 +7,10 @@ import { useChat } from "ai/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { getAssistantSystemPrompt } from "@/lib/ai-assistant-prompt"
-import { MessageCircle, X, Send, Loader2 } from "lucide-react"
+import { MessageCircle, X, Send, Loader2, Bot, User } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { fetchUserContext, formatUserContextForPrompt } from "@/lib/user-context-fetcher"
-import { parseMessage } from "@/lib/chat-parser"
+import { MarkdownRenderer } from "@/components/markdown-renderer"
 
 export function AIChatAssistant({ propertyContext }: { propertyContext?: string }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -20,8 +20,11 @@ export function AIChatAssistant({ propertyContext }: { propertyContext?: string 
   const [enabled, setEnabled] = useState(false)
   const [userContextString, setUserContextString] = useState<string>("")
   const [isLoadingContext, setIsLoadingContext] = useState(false)
+  const [messageTimes, setMessageTimes] = useState<Record<string, Date>>({})
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [files, setFiles] = useState<FileList | undefined>(undefined)
 
-  // Hämta användarkontext när komponenten laddas eller användaren ändras
+  // Fetch user context when component loads or user changes
   useEffect(() => {
     async function loadUserContext() {
       if (!user) return
@@ -66,6 +69,23 @@ export function AIChatAssistant({ propertyContext }: { propertyContext?: string 
     disabled: !enabled || isLoadingContext,
   })
 
+  // Add timestamps for new messages
+  useEffect(() => {
+    const hasNewMessages = messages.some((message) => !messageTimes[message.id])
+
+    if (hasNewMessages) {
+      setMessageTimes((prevTimes) => {
+        const newTimes = { ...prevTimes }
+        messages.forEach((message) => {
+          if (!newTimes[message.id]) {
+            newTimes[message.id] = new Date()
+          }
+        })
+        return newTimes
+      })
+    }
+  }, [messages, messageTimes])
+
   // Scroll to bottom when messages change
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -80,7 +100,6 @@ export function AIChatAssistant({ propertyContext }: { propertyContext?: string 
     }
   }, [isOpen])
 
-  // Hide floating button when chat is open
   const toggleDrawer = () => {
     setIsOpen(!isOpen)
   }
@@ -90,6 +109,46 @@ export function AIChatAssistant({ propertyContext }: { propertyContext?: string 
     if (input.trim()) {
       handleSubmit(e)
     }
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setFiles(e.target.files)
+    }
+  }
+
+  const clearFiles = () => {
+    setFiles(undefined)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
+  }
+
+  // Helper function to format timestamps
+  function formatMessageTime(date: Date | undefined): string {
+    if (!date) return "Just now"
+
+    const now = new Date()
+    const diff = now.getTime() - date.getTime()
+
+    // If less than a minute ago, show "Just now"
+    if (diff < 60000) {
+      return "Just now"
+    }
+
+    // If less than an hour ago, show minutes
+    if (diff < 3600000) {
+      const minutes = Math.floor(diff / 60000)
+      return `${minutes}m ago`
+    }
+
+    // If today, show time
+    if (now.toDateString() === date.toDateString()) {
+      return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    }
+
+    // Otherwise show date
+    return date.toLocaleDateString([], { month: "short", day: "numeric" })
   }
 
   if (!user) return null
@@ -133,23 +192,79 @@ export function AIChatAssistant({ propertyContext }: { propertyContext?: string 
           <div className="flex-1 overflow-y-auto p-4 mx-auto w-full max-w-4xl">
             <div className="space-y-4">
               {messages.map((message) => (
-                <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-                  <div
-                    className={`max-w-[80%] rounded-lg p-3 ${
-                      message.role === "user" ? "bg-blue-500 text-white" : "bg-gray-100 text-gray-800"
-                    }`}
-                  >
-                    {message.role === "assistant" ? parseMessage(message.content) : message.content}
+                <div
+                  key={message.id}
+                  className={`flex ${message.role === "user" ? "justify-end" : "justify-start"} items-start`}
+                >
+                  {message.role === "assistant" && (
+                    <div className="flex flex-col items-center mr-2">
+                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100">
+                        <Bot className="h-4 w-4 text-blue-600" />
+                      </div>
+                      <span className="text-xs font-medium text-blue-600 mt-1">AI</span>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col">
+                    <div
+                      className={`max-w-[80%] rounded-lg p-3 ${
+                        message.role === "user" ? "bg-blue-500 text-white" : "bg-gray-100 text-gray-800"
+                      }`}
+                    >
+                      {message.role === "user" ? (
+                        <p className="leading-relaxed tracking-wide">{message.content}</p>
+                      ) : (
+                        <MarkdownRenderer content={message.content} />
+                      )}
+                    </div>
+                    <div
+                      className={`text-xs text-gray-500 mt-1 ${message.role === "user" ? "text-right" : "text-left"}`}
+                    >
+                      {formatMessageTime(messageTimes[message.id])}
+                    </div>
                   </div>
+
+                  {message.role === "user" && (
+                    <div className="flex flex-col items-center ml-2">
+                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-500">
+                        <User className="h-4 w-4 text-white" />
+                      </div>
+                      <span className="text-xs font-medium text-blue-600 mt-1">Du</span>
+                    </div>
+                  )}
                 </div>
               ))}
+
               {isLoading && (
-                <div className="flex justify-start">
-                  <div className="max-w-[80%] rounded-lg p-3 bg-gray-100 text-gray-800">
-                    <Loader2 className="h-5 w-5 animate-spin" />
+                <div className="flex justify-start items-start">
+                  <div className="flex flex-col items-center mr-2">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100">
+                      <Bot className="h-4 w-4 text-blue-600" />
+                    </div>
+                    <span className="text-xs font-medium text-blue-600 mt-1">AI</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <div className="max-w-[80%] rounded-lg p-3 bg-gray-100 text-gray-800">
+                      <div className="flex space-x-2">
+                        <div
+                          className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"
+                          style={{ animationDelay: "0ms" }}
+                        ></div>
+                        <div
+                          className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"
+                          style={{ animationDelay: "300ms" }}
+                        ></div>
+                        <div
+                          className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"
+                          style={{ animationDelay: "600ms" }}
+                        ></div>
+                      </div>
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">Just now</div>
                   </div>
                 </div>
               )}
+
               {error && (
                 <div className="flex justify-center">
                   <div className="max-w-[80%] rounded-lg p-3 bg-red-100 text-red-800">
@@ -157,6 +272,7 @@ export function AIChatAssistant({ propertyContext }: { propertyContext?: string 
                   </div>
                 </div>
               )}
+
               <div ref={messagesEndRef} />
             </div>
           </div>
