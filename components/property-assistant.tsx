@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react"
 import { AIChatAssistant } from "@/components/ai-chat-assistant"
 import { useAuth } from "@/contexts/auth-context"
+// Import the BrokerInfoCard component
+import { BrokerInfoCard } from "@/components/broker-info-card"
 
 interface PropertyData {
   id: string
@@ -17,6 +19,7 @@ interface PropertyData {
   monthly_fee?: string
   energy_rating?: string
   is_analyzed: boolean
+  analysis?: any // TODO: Define the type for analysis
 }
 
 export function PropertyAssistant({
@@ -54,5 +57,17 @@ Beskrivning: ${property.description.substring(0, 300)}...
     }
   }, [property, propertyId])
 
-  return <AIChatAssistant propertyContext={propertyContext} />
+  const analysis = property?.analysis
+
+  return (
+    <>
+      <AIChatAssistant propertyContext={propertyContext} />
+      {/* Broker Information */}
+      {analysis?.brokerInfo &&
+        analysis?.brokerInfo?.searchResults &&
+        analysis?.brokerInfo?.searchResults?.length > 0 && (
+          <BrokerInfoCard brokerName={analysis.brokerInfo.name} searchResults={analysis.brokerInfo.searchResults} />
+        )}
+    </>
+  )
 }

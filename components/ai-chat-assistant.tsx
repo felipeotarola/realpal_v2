@@ -80,6 +80,7 @@ export function AIChatAssistant({ propertyContext }: { propertyContext?: string 
     }
   }, [isOpen])
 
+  // Hide floating button when chat is open
   const toggleDrawer = () => {
     setIsOpen(!isOpen)
   }
@@ -95,17 +96,19 @@ export function AIChatAssistant({ propertyContext }: { propertyContext?: string 
 
   return (
     <>
-      {/* Floating button */}
-      <Button
-        onClick={toggleDrawer}
-        className="fixed bottom-16 right-6 rounded-full w-14 h-14 shadow-lg z-50 p-0 flex items-center justify-center"
-      >
-        {isOpen ? <X size={24} /> : <MessageCircle size={24} />}
-      </Button>
+      {/* Floating button - hidden when chat is open */}
+      {!isOpen && (
+        <Button
+          onClick={toggleDrawer}
+          className="fixed bottom-6 right-6 rounded-full w-14 h-14 shadow-lg z-40 p-0 flex items-center justify-center"
+        >
+          <MessageCircle size={24} />
+        </Button>
+      )}
 
       {/* Chat drawer - full width on all screen sizes */}
       <div
-        className={`fixed bottom-0 left-0 right-0 w-full h-[60vh] bg-white shadow-lg rounded-t-lg transition-transform duration-300 ease-in-out z-40 ${
+        className={`fixed bottom-0 left-0 right-0 w-full h-[60vh] bg-white shadow-lg rounded-t-lg transition-transform duration-300 ease-in-out z-50 ${
           isOpen ? "translate-y-0" : "translate-y-full"
         }`}
       >
@@ -159,8 +162,8 @@ export function AIChatAssistant({ propertyContext }: { propertyContext?: string 
           </div>
 
           {/* Input - centered with max width for better usability on wide screens */}
-          <form onSubmit={handleFormSubmit} className="p-4 border-t">
-            <div className="flex gap-2 mx-auto w-full max-w-4xl">
+          <div className="p-4 border-t">
+            <form onSubmit={handleFormSubmit} className="flex gap-2 mx-auto w-full max-w-4xl">
               <Input
                 ref={inputRef}
                 value={input}
@@ -172,8 +175,8 @@ export function AIChatAssistant({ propertyContext }: { propertyContext?: string 
               <Button type="submit" disabled={isLoading || isLoadingContext || !input.trim()}>
                 {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send size={18} />}
               </Button>
-            </div>
-          </form>
+            </form>
+          </div>
         </div>
       </div>
     </>

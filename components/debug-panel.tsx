@@ -16,6 +16,7 @@ export function DebugPanel({ propertyId }: DebugPanelProps) {
   const [error, setError] = useState<string | null>(null)
   const [isVisible, setIsVisible] = useState(false)
   const { user } = useAuth()
+  const [result, setResult] = useState<string | null>(null)
 
   const checkDatabase = async () => {
     setIsLoading(true)
@@ -70,6 +71,29 @@ export function DebugPanel({ propertyId }: DebugPanelProps) {
     } catch (err) {
       console.error("Property check error:", err)
       setError(err instanceof Error ? err.message : "An error occurred")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const updateBrokerSchema = async () => {
+    setIsLoading(true)
+    try {
+      const response = await fetch("/api/admin/update-broker-schema", {
+        method: "POST",
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || "Failed to update broker schema")
+      }
+
+      const result = await response.json()
+      setResult(JSON.stringify(result, null, 2))
+      alert("Broker schema updated successfully!")
+    } catch (error) {
+      console.error("Error updating broker schema:", error)
+      setResult(JSON.stringify({ error: error.message }, null, 2))
     } finally {
       setIsLoading(false)
     }
@@ -135,6 +159,9 @@ export function DebugPanel({ propertyId }: DebugPanelProps) {
                     </Button>
                   )}
                 </div>
+                <Button onClick={updateBrokerSchema} disabled={isLoading} className="w-full" size="sm">
+                  Update Broker Schema
+                </Button>
 
                 {error && <div className="p-4 bg-red-50 text-red-600 rounded-md">{error}</div>}
 

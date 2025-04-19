@@ -13,7 +13,10 @@ import { useAuth } from "@/contexts/auth-context"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
 import { ComparisonButton } from "@/components/comparison-button"
+// Import the BrokerInfoCard component
+import { BrokerInfoCard } from "@/components/broker-info-card"
 
+// Update the PropertyResultsProps interface to include brokerInfo
 interface PropertyResultsProps {
   results: {
     property: PropertyData
@@ -22,6 +25,11 @@ interface PropertyResultsProps {
       crawledAt: string
       note?: string
       extractionMethod?: string
+    }
+    brokerInfo?: {
+      name: string
+      searchResults: any[]
+      searchQuery: string
     }
   }
 }
@@ -323,6 +331,11 @@ export function PropertyResults({ results }: PropertyResultsProps) {
           )}
 
           {property.agent && <div className="text-sm text-gray-500 mt-4">Mäklare: {property.agent}</div>}
+          {results.brokerInfo && results.brokerInfo.searchResults && results.brokerInfo.searchResults.length > 0 && (
+            <div className="mt-4">
+              <BrokerInfoCard brokerName={results.brokerInfo.name} searchResults={results.brokerInfo.searchResults} />
+            </div>
+          )}
 
           {metadata.extractionMethod && (
             <div className="flex items-center gap-1 text-xs text-gray-400 mt-2">

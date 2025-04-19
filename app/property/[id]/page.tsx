@@ -21,6 +21,7 @@ import {
   ThumbsDown,
   BarChart3,
   Brain,
+  Search,
 } from "lucide-react"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useRouter } from "next/navigation"
@@ -29,9 +30,10 @@ import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { DebugPanel } from "@/components/debug-panel"
 import { ComparisonButton } from "@/components/comparison-button"
-import { toast } from "@/components/ui/use-toast"
-// Lägg till import för PropertyAssistant
 import { PropertyAssistant } from "@/components/property-assistant"
+import { BrokerInfoCard } from "@/components/broker-info-card"
+import { searchBrokerInfo } from "@/lib/tavily-search"
+import { DebugBrokerSearch } from "@/components/debug-broker-search"
 
 interface AttributeScore {
   name: string
@@ -51,6 +53,11 @@ interface PropertyAnalysis {
   value_for_money: number
   created_at: string
   updated_at: string
+  broker_info?: {
+    results: any[]
+    searchQuery: string
+    isFallback?: boolean
+  }
 }
 
 interface PropertyData {
@@ -73,11 +80,7 @@ interface PropertyData {
   is_analyzed: boolean
 }
 
-// Update the PropertyDetailPage component to handle async params properly
-export default function PropertyDetailPage({ params }: { params: { id: string } | Promise<{ id: string }> }) {
-  // Safely get the ID whether params is a Promise or a regular object
-  const propertyId = typeof params === "object" && !("then" in params) ? params.id : null
-
+export default function PropertyDetailPage({ params }: { params: { id: string } }) {
   const { user } = useAuth()
   const [property, setProperty] = useState<PropertyData | null>(null)
   const [analysis, setAnalysis] = useState<PropertyAnalysis | null>(null)
@@ -88,41 +91,27 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
   const [analysisError, setAnalysisError] = useState<string | null>(null)
   const router = useRouter()
   const [isSaving, setIsSaving] = useState(false)
+  const [brokerInfo, setBrokerInfo] = useState<any>(null)
+  const [isBrokerInfoLoading, setIsBrokerInfoLoading] = useState(false)
 
-  // Hämta fastighetsdata
+  // Fetch property data
   useEffect(() => {
     async function loadProperty() {
       if (!user) return
 
       try {
-        // Get the ID from params, whether it's a Promise or a regular object
-        let id: string
-        if (propertyId) {
-          id = propertyId
-        } else if (params instanceof Promise) {
-          try {
-            const unwrappedParams = await params
-            id = unwrappedParams.id
-          } catch (error) {
-            console.error("Error unwrapping params:", error)
-            throw new Error("Could not get property ID")
-          }
-        } else {
-          throw new Error("Invalid params format")
-        }
+        console.log("Loading property with ID:", params.id)
 
-        console.log("Loading property with ID:", id)
-
-        // Först försök att hämta från sessionStorage (om användaren kom från sparade fastigheter)
+        // First try to get from sessionStorage (if user came from saved properties)
         const sessionProperty = sessionStorage.getItem("viewProperty")
         if (sessionProperty) {
           const parsedProperty = JSON.parse(sessionProperty)
-          if (parsedProperty.id === id) {
+          if (parsedProperty.id === params.id) {
             console.log("Found property in session storage:", parsedProperty.id)
             setProperty(parsedProperty)
             setIsLoading(false)
 
-            // Om fastigheten är analyserad, hämta analysen
+            // If property is analyzed, fetch the analysis
             if (parsedProperty.is_analyzed) {
               loadAnalysis(parsedProperty.id)
             } else {
@@ -132,12 +121,12 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
           }
         }
 
-        // Annars hämta från databasen
-        console.log("Fetching property from database:", id)
+        // Otherwise fetch from database
+        console.log("Fetching property from database:", params.id)
         const { data, error } = await supabase
           .from("saved_properties")
           .select("*")
-          .eq("id", id)
+          .eq("id", params.id)
           .eq("user_id", user.id)
           .single()
 
@@ -153,7 +142,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
         console.log("Property loaded from database:", data.id)
         setProperty(data)
 
-        // Om fastigheten är analyserad, hämta analysen
+        // If property is analyzed, fetch the analysis
         if (data.is_analyzed) {
           loadAnalysis(data.id)
         } else {
@@ -169,9 +158,9 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
     }
 
     loadProperty()
-  }, [user, params, propertyId])
+  }, [user, params.id])
 
-  // Hämta analysdata
+  // Fetch analysis data
   const loadAnalysis = async (propertyId: string) => {
     try {
       setIsAnalysisLoading(true)
@@ -189,6 +178,14 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
       } else if (data) {
         console.log("Analysis loaded:", data.id)
         setAnalysis(data)
+
+        // Check if broker_info exists in the analysis
+        if (data.broker_info && data.broker_info.results && data.broker_info.results.length > 0) {
+          console.log(`✅ Found broker info in analysis with ${data.broker_info.results.length} results`)
+          setBrokerInfo(data.broker_info)
+        } else {
+          console.log("❌ No broker info found in analysis")
+        }
       }
     } catch (error) {
       console.error("Fel vid hämtning av analys:", error)
@@ -250,25 +247,67 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
           throw error
         }
 
-        toast({
-          title: "Fastighet sparad",
-          description: "En kopia av fastigheten har sparats till din lista",
-        })
+        alert("En kopia av fastigheten har sparats till din lista")
       } else {
-        toast({
-          title: "Information",
-          description: "Denna fastighet finns redan i din lista",
-        })
+        alert("Denna fastighet finns redan i din lista")
       }
     } catch (error: any) {
       console.error("Fel vid sparande av fastighet:", error)
-      toast({
-        title: "Fel",
-        description: "Kunde inte spara fastigheten. Försök igen.",
-        variant: "destructive",
-      })
+      alert("Kunde inte spara fastigheten: " + error.message)
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  const handleSearchBroker = async () => {
+    if (!property || !property.agent) return
+
+    setIsBrokerInfoLoading(true)
+    try {
+      console.log(`🔍 Manually searching for broker: "${property.agent}" in location: "${property.location}"`)
+
+      // Use the API endpoint for better error handling
+      const response = await fetch("/api/broker-info", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          brokerName: property.agent,
+          location: property.location,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (data.results && data.results.results && data.results.results.length > 0) {
+        console.log(`✅ Found ${data.results.results.length} results for broker`)
+        setBrokerInfo(data.results)
+
+        // If we have an analysis, update it with the broker info
+        if (analysis) {
+          const { error } = await supabase
+            .from("property_analyses")
+            .update({ broker_info: data.results })
+            .eq("id", analysis.id)
+
+          if (error) {
+            console.error("Error updating analysis with broker info:", error)
+          }
+        }
+      } else {
+        console.log("❌ No results found for broker")
+        alert("Kunde inte hitta information om mäklaren. Försök igen senare.")
+      }
+    } catch (error) {
+      console.error("Error searching for broker:", error)
+      alert("Ett fel uppstod vid sökning efter mäklarinformation.")
+    } finally {
+      setIsBrokerInfoLoading(false)
     }
   }
 
@@ -279,6 +318,22 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
     setAnalysisError(null)
 
     try {
+      // First, search for broker information if a broker name exists
+      let brokerSearchResults = null
+      if (property.agent) {
+        setIsBrokerInfoLoading(true)
+        console.log(`🔍 Starting broker search for: "${property.agent}" in location: "${property.location}"`)
+        brokerSearchResults = await searchBrokerInfo(property.agent, property.location)
+        setIsBrokerInfoLoading(false)
+
+        if (brokerSearchResults && brokerSearchResults.results && brokerSearchResults.results.length > 0) {
+          console.log(`✅ Broker search completed with ${brokerSearchResults.results.length} results`)
+          setBrokerInfo(brokerSearchResults)
+        } else {
+          console.log(`❌ No broker information found for: ${property.agent}`)
+        }
+      }
+
       // Call the API route with the complete property data in the payload
       const response = await fetch("/api/property/analyze", {
         method: "POST",
@@ -308,32 +363,27 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
           .eq("property_id", property.id)
           .maybeSingle()
 
+        // Include broker info in the analysis data
+        const analysisData = {
+          analysis_summary: data.analysis.analysis_summary,
+          total_score: data.analysis.total_score,
+          attribute_scores: data.analysis.attribute_scores,
+          pros: data.analysis.pros,
+          cons: data.analysis.cons,
+          investment_rating: data.analysis.investment_rating,
+          value_for_money: data.analysis.value_for_money,
+          updated_at: new Date().toISOString(),
+          broker_info: brokerSearchResults,
+        }
+
         if (existingAnalysis) {
           // Update existing analysis
-          await supabase
-            .from("property_analyses")
-            .update({
-              analysis_summary: data.analysis.analysis_summary,
-              total_score: data.analysis.total_score,
-              attribute_scores: data.analysis.attribute_scores,
-              pros: data.analysis.pros,
-              cons: data.analysis.cons,
-              investment_rating: data.analysis.investment_rating,
-              value_for_money: data.analysis.value_for_money,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", existingAnalysis.id)
+          await supabase.from("property_analyses").update(analysisData).eq("id", existingAnalysis.id)
         } else {
           // Create new analysis
           await supabase.from("property_analyses").insert({
             property_id: property.id,
-            analysis_summary: data.analysis.analysis_summary,
-            total_score: data.analysis.total_score,
-            attribute_scores: data.analysis.attribute_scores,
-            pros: data.analysis.pros,
-            cons: data.analysis.cons,
-            investment_rating: data.analysis.investment_rating,
-            value_for_money: data.analysis.value_for_money,
+            ...analysisData,
           })
         }
 
@@ -349,7 +399,12 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
           ...property,
           is_analyzed: true,
         })
-        setAnalysis(data.analysis)
+
+        // Include broker info in the analysis state
+        setAnalysis({
+          ...data.analysis,
+          broker_info: brokerSearchResults,
+        })
       } catch (dbError) {
         console.error("Fel vid sparande av analys i databasen:", dbError)
         // Still show the analysis even if saving to DB failed
@@ -357,7 +412,10 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
           ...property,
           is_analyzed: true,
         })
-        setAnalysis(data.analysis)
+        setAnalysis({
+          ...data.analysis,
+          broker_info: brokerSearchResults,
+        })
       }
     } catch (error) {
       console.error("Fel vid analys av fastighet:", error)
@@ -376,14 +434,14 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
     return price
   }
 
-  // Funktion för att visa poängfärg baserat på värde
+  // Function to get score color based on value
   const getScoreColor = (score: number) => {
     if (score >= 8) return "text-green-600"
     if (score >= 6) return "text-yellow-600"
     return "text-red-600"
   }
 
-  // Funktion för att visa poängbakgrundsfärg baserat på värde
+  // Function to get score background color based on value
   const getScoreBackgroundColor = (score: number) => {
     if (score >= 8) return "bg-green-100"
     if (score >= 6) return "bg-yellow-100"
@@ -420,8 +478,6 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
 
   const isAnalyzed = property.is_analyzed && analysis !== null
 
-  // I slutet av komponenten, innan return-satsen, lägg till:
-  // Ersätt AIChatAssistant med PropertyAssistant och skicka med property som prop
   return (
     <ProtectedRoute>
       <div className="container mx-auto py-10 px-4">
@@ -462,7 +518,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
           </div>
         </div>
 
-        {/* Analysknapp */}
+        {/* Analyze button */}
         {!isAnalyzed && !isAnalysisLoading && (
           <Card className="mb-6">
             <CardContent className="p-6">
@@ -471,6 +527,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                   <h3 className="text-lg font-medium mb-1">AI-analys av fastigheten</h3>
                   <p className="text-gray-600">
                     Låt AI analysera denna fastighet för att få poäng, för- och nackdelar, och investeringsvärdering.
+                    {property.agent && " Information om mäklaren kommer också att hämtas."}
                   </p>
                 </div>
                 <Button onClick={handleAnalyze} disabled={isAnalyzing} className="min-w-[150px]">
@@ -508,7 +565,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Vänster kolumn - Bilder och beskrivning */}
+          {/* Left column - Images and description */}
           <div className="lg:col-span-2">
             <Card className="overflow-hidden">
               <div className="relative aspect-video bg-gray-100">
@@ -527,7 +584,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                   </div>
                 )}
 
-                {/* Visa totalpoäng om tillgängligt */}
+                {/* Show total score if available */}
                 {isAnalyzed && analysis.total_score && (
                   <div
                     className={`absolute top-4 right-4 ${getScoreBackgroundColor(analysis.total_score)} rounded-full p-2 px-3 font-bold text-lg flex items-center`}
@@ -539,7 +596,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
               </div>
 
               <CardContent className="p-6">
-                {/* AI-analys och sammanfattning */}
+                {/* AI analysis and summary */}
                 {isAnalyzed && analysis.analysis_summary && (
                   <div className="bg-blue-50 p-4 rounded-md mb-6">
                     <h3 className="text-lg font-medium mb-2 flex items-center">
@@ -570,7 +627,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
               </CardContent>
             </Card>
 
-            {/* För- och nackdelar */}
+            {/* Pros and cons */}
             {isAnalyzed && (analysis.pros?.length || analysis.cons?.length) && (
               <Card className="mt-6">
                 <CardHeader>
@@ -618,7 +675,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
             )}
           </div>
 
-          {/* Höger kolumn - Detaljer och poäng */}
+          {/* Right column - Details and scores */}
           <div className="space-y-6">
             <Card>
               <CardHeader>
@@ -654,12 +711,52 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                 </div>
 
                 {property.agent && (
-                  <div className="flex items-start gap-2 p-3 bg-gray-50 rounded-md">
-                    <Info className="h-4 w-4 text-gray-500 mt-0.5" />
-                    <div>
-                      <div className="text-sm text-gray-500">Mäklare</div>
-                      <div className="font-medium">{property.agent}</div>
+                  <div className="flex flex-col gap-2 p-3 bg-gray-50 rounded-md">
+                    <div className="flex items-start gap-2">
+                      <Info className="h-4 w-4 text-gray-500 mt-0.5" />
+                      <div className="flex-1">
+                        <div className="text-sm text-gray-500">Mäklare</div>
+                        <div className="font-medium">{property.agent}</div>
+                      </div>
+
+                      {/* Manual search button */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSearchBroker}
+                        disabled={isBrokerInfoLoading}
+                        className="h-8 px-2"
+                      >
+                        {isBrokerInfoLoading ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Search className="h-3 w-3" />
+                        )}
+                      </Button>
                     </div>
+
+                    {/* Broker info loading indicator */}
+                    {isBrokerInfoLoading && (
+                      <div className="flex items-center justify-center mt-2">
+                        <Loader2 className="h-4 w-4 animate-spin text-gray-400 mr-2" />
+                        <span className="text-sm text-gray-500">Hämtar information om mäklaren...</span>
+                      </div>
+                    )}
+
+                    {/* Display broker info if available */}
+                    {brokerInfo && brokerInfo.results && brokerInfo.results.length > 0 ? (
+                      <BrokerInfoCard
+                        brokerName={property.agent}
+                        searchResults={brokerInfo.results}
+                        isFallback={brokerInfo.isFallback}
+                      />
+                    ) : (
+                      !isBrokerInfoLoading && (
+                        <div className="mt-2 text-sm text-gray-500">
+                          Ingen ytterligare information hittad om denna mäklare.
+                        </div>
+                      )
+                    )}
                   </div>
                 )}
 
@@ -673,7 +770,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
               </CardContent>
             </Card>
 
-            {/* Attributpoäng */}
+            {/* Attribute scores */}
             {isAnalyzed && analysis.attribute_scores && analysis.attribute_scores.length > 0 && (
               <Card>
                 <CardHeader>
@@ -697,7 +794,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
               </Card>
             )}
 
-            {/* Investeringsvärde */}
+            {/* Investment value */}
             {isAnalyzed && (analysis.investment_rating || analysis.value_for_money) && (
               <Card>
                 <CardHeader>
@@ -733,7 +830,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
           </div>
         </div>
 
-        {/* Bildgalleri */}
+        {/* Image gallery */}
         <Card className="mt-6">
           <CardHeader>
             <CardTitle>Fastighetsbilder</CardTitle>
@@ -750,8 +847,13 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
           </CardContent>
         </Card>
         <DebugPanel propertyId={property?.id} />
-        {/* Befintlig kod */}
+        {/* Property Assistant */}
         <PropertyAssistant property={property} />
+
+        {/* Debug Broker Search */}
+        {process.env.NODE_ENV !== "production" && property.agent && (
+          <DebugBrokerSearch brokerName={property.agent} location={property.location} />
+        )}
       </div>
     </ProtectedRoute>
   )

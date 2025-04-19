@@ -3,6 +3,8 @@ import { generateText } from "ai"
 import { openai } from "@ai-sdk/openai"
 import { supabase } from "@/lib/supabase"
 import { calculatePropertyMatchScore } from "@/lib/property-scoring"
+// Import the Tavily search function at the top of the file
+import { searchBrokerInfo } from "@/lib/tavily-search"
 
 export const dynamic = "force-dynamic"
 export const maxDuration = 60 // 60 sekunder timeout
@@ -32,6 +34,7 @@ interface PropertyAnalysisRequest {
   yearBuilt?: string
   monthlyFee?: string
   userId?: string // Lägg till användar-ID för att hämta preferenser
+  agent?: string // Mäklare
 }
 
 interface AttributeScore {
@@ -40,6 +43,7 @@ interface AttributeScore {
   comment: string
 }
 
+// Update the PropertyAnalysisResponse interface to include broker information
 interface PropertyAnalysisResponse {
   summary: string
   totalScore: number
@@ -52,6 +56,11 @@ interface PropertyAnalysisResponse {
     score: number
     percentage: number
     matches: Record<string, { matched: boolean; importance: number; featureLabel: string }>
+  }
+  brokerInfo?: {
+    name: string
+    searchResults: any[]
+    searchQuery: string
   }
 }
 
@@ -140,6 +149,18 @@ export async function POST(request: Request) {
         score: matchResult.score,
         percentage: matchResult.percentage,
         matches: matchResult.matches,
+      }
+    }
+
+    // Search for broker information if available
+    if (propertyData.agent) {
+      const brokerInfo = await searchBrokerInfo(propertyData.agent, propertyData.location)
+      if (brokerInfo) {
+        analysis.brokerInfo = {
+          name: propertyData.agent,
+          searchResults: brokerInfo.results,
+          searchQuery: brokerInfo.searchQuery,
+        }
       }
     }
 
@@ -262,6 +283,7 @@ Svara ENDAST i följande JSON-format:
       cons: ["Ingen automatisk analys tillgänglig"],
       investmentRating: 5,
       valueForMoney: 5,
+      brokerInfo: undefined,
     }
   }
 }

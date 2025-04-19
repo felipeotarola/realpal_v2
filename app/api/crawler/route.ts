@@ -2,6 +2,9 @@ import { generateText } from "ai"
 import { openai } from "@ai-sdk/openai"
 import { NextResponse } from "next/server"
 
+// Import the Tavily search function at the top of the file
+import { searchBrokerInfo } from "@/lib/tavily-search"
+
 // Sätt dynamisk rendering för att undvika caching
 export const dynamic = "force-dynamic"
 // Öka timeout till 300 sekunder
@@ -135,6 +138,29 @@ async function extractPropertyDataWithFirecrawl(url: string) {
       yearBuilt: result.data.json.yearBuilt,
       monthlyFee: result.data.json.monthlyFee,
       energyRating: result.data.json.energyRating,
+    }
+
+    // If we have an agent name, search for additional information
+    if (propertyData.agent) {
+      try {
+        const brokerInfo = await searchBrokerInfo(propertyData.agent, propertyData.location)
+        if (brokerInfo && brokerInfo.results.length > 0) {
+          // Add broker info to the response
+          return {
+            success: true,
+            data: propertyData,
+            images: images,
+            brokerInfo: {
+              name: propertyData.agent,
+              searchResults: brokerInfo.results,
+              searchQuery: brokerInfo.searchQuery,
+            },
+          }
+        }
+      } catch (error) {
+        console.error("Error searching for broker information:", error)
+        // Continue without broker info if there's an error
+      }
     }
 
     return {
