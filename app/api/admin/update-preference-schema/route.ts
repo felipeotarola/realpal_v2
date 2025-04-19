@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
+import { createClient } from "@/lib/supabase"
 import { cookies } from "next/headers"
-import { createClient } from "@supabase/supabase-js"
 
 export const dynamic = "force-dynamic"
 

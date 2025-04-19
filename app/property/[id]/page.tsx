@@ -101,6 +101,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
   const [isBrokerInfoLoading, setIsBrokerInfoLoading] = useState(false)
   const [preferenceMatch, setPreferenceMatch] = useState<any>(null)
   const [debugInfo, setDebugInfo] = useState<string[]>([])
+  const [isCalculatingMatch, setIsCalculatingMatch] = useState(false)
   const router = useRouter()
 
   // Helper function to add debug info
@@ -229,62 +230,212 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
     }
   }
 
-  // Fetch preference match data directly
+  // Replace the fetchPreferenceMatch function with this new implementation
   const fetchPreferenceMatch = async (propertyId: string, userId: string) => {
     try {
-      addDebugInfo("Fetching preference match data directly...")
+      setIsCalculatingMatch(true)
+      addDebugInfo("Calculating preference match directly on client side...")
 
-      const response = await fetch("/api/debug/calculate-preference-match", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          propertyId,
-          userId,
-        }),
-      })
+      // 1. Fetch property data
+      const { data: property, error: propertyError } = await supabase
+        .from("saved_properties")
+        .select("*")
+        .eq("id", propertyId)
+        .single()
 
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`)
+      if (propertyError || !property) {
+        addDebugInfo(`❌ Error fetching property: ${propertyError?.message || "Property not found"}`)
+        return
       }
 
-      const data = await response.json()
+      // 2. Fetch user preferences
+      const { data: preferences, error: prefError } = await supabase
+        .from("user_property_requirements")
+        .select("feature_id, value, importance")
+        .eq("user_id", userId)
 
-      if (data.matchResult) {
-        addDebugInfo(`✅ Successfully calculated preference match: ${data.matchResult.percentage}%`)
+      if (prefError) {
+        addDebugInfo(`❌ Error fetching preferences: ${prefError.message}`)
+        return
+      }
 
-        // Update the analysis state with the new preference match data
-        setPreferenceMatch(data.matchResult)
+      if (!preferences || preferences.length === 0) {
+        addDebugInfo("❌ No preferences found for user")
+        return
+      }
 
-        if (analysis) {
-          setAnalysis({
-            ...analysis,
-            preference_match: data.matchResult,
-          })
+      addDebugInfo(`✅ Found ${preferences.length} preferences for user`)
 
-          // Also update the database
+      // 3. Fetch feature definitions
+      const { data: features, error: featError } = await supabase.from("property_features").select("*")
+
+      if (featError) {
+        addDebugInfo(`❌ Error fetching features: ${featError.message}`)
+        return
+      }
+
+      // 4. Format preferences for match calculation
+      const userPreferences = preferences.reduce((acc, pref) => {
+        const value =
+          pref.value && typeof pref.value === "object" && "value" in pref.value ? pref.value.value : pref.value
+
+        acc[pref.feature_id] = {
+          value,
+          importance: pref.importance,
+        }
+        return acc
+      }, {})
+
+      addDebugInfo("Formatted user preferences: " + JSON.stringify(userPreferences).substring(0, 100) + "...")
+
+      // 5. Create property features object
+      const propertyFeatures: Record<string, any> = {
+        rooms: Number.parseInt(property.rooms) || 0,
+        size: Number.parseInt(property.size) || 0,
+      }
+
+      // Add boolean features based on features array
+      const featureKeywords = {
+        balkong: "balcony",
+        hiss: "elevator",
+        parkering: "parking",
+        garage: "garage",
+        trädgård: "garden",
+        renoverad: "renovated",
+        "öppen spis": "fireplace",
+        badkar: "bathtub",
+        diskmaskin: "dishwasher",
+        tvättmaskin: "laundry",
+      }
+
+      // Check if features exist in the features array
+      Object.entries(featureKeywords).forEach(([swedish, english]) => {
+        const hasFeature = property.features.some(
+          (feature) => feature.toLowerCase().includes(swedish) || feature.toLowerCase().includes(english),
+        )
+        propertyFeatures[english] = hasFeature
+        addDebugInfo(`Feature ${english}: ${hasFeature ? "Yes" : "No"}`)
+      })
+
+      // 6. Calculate match score
+      // Import the calculation function directly
+      const { calculatePropertyMatchScore } = await import("@/lib/property-scoring")
+      const matchResult = calculatePropertyMatchScore(propertyFeatures, userPreferences, features)
+
+      addDebugInfo(`✅ Preference match calculation complete: ${matchResult.percentage}%`)
+      addDebugInfo(`Match result: ${JSON.stringify(matchResult).substring(0, 200)}...`)
+
+      // 7. Update the UI with the match result
+      setPreferenceMatch(matchResult)
+
+      // 8. Update the analysis state if it exists
+      if (analysis) {
+        setAnalysis({
+          ...analysis,
+          preference_match: matchResult,
+        })
+
+        // 9. Also update the database
+        const { data: analysisRecord } = await supabase
+          .from("property_analyses")
+          .select("id")
+          .eq("property_id", propertyId)
+          .single()
+
+        if (analysisRecord) {
           const { error } = await supabase
             .from("property_analyses")
             .update({
-              preference_match: data.matchResult,
+              preference_match: matchResult,
               updated_at: new Date().toISOString(),
             })
-            .eq("id", analysis.id)
+            .eq("id", analysisRecord.id)
 
           if (error) {
-            addDebugInfo("❌ Error updating analysis with preference match: " + error.message)
+            addDebugInfo(`❌ Error updating analysis with preference match: ${error.message}`)
           } else {
             addDebugInfo("✅ Updated analysis in database with preference match data")
           }
         }
-      } else {
-        addDebugInfo("❌ No match result returned from API")
       }
+
+      return matchResult
     } catch (error) {
-      console.error("Error fetching preference match:", error)
-      addDebugInfo("Error in fetchPreferenceMatch: " + (error instanceof Error ? error.message : String(error)))
+      console.error("Error calculating preference match:", error)
+      addDebugInfo(`❌ Error in fetchPreferenceMatch: ${error instanceof Error ? error.message : String(error)}`)
+    } finally {
+      setIsCalculatingMatch(false)
     }
+  }
+
+  // Update the preparePreferenceMatchData function to better handle different data formats
+  // Replace the existing preparePreferenceMatchData function with this version:
+
+  const preparePreferenceMatchData = () => {
+    // First try to use the preferenceMatch state (which might be more up-to-date)
+    const matchData = preferenceMatch || analysis?.preference_match || null
+
+    if (!matchData) {
+      // Don't call addDebugInfo here to avoid state updates during render
+      console.log("No preference match data available")
+      return null
+    }
+
+    console.log(`Preparing preference match data: ${JSON.stringify(matchData).substring(0, 100)}...`)
+
+    // Ensure we have the basic required properties
+    const result = {
+      score: matchData.score || 0,
+      percentage: matchData.percentage || 0,
+      matches: {},
+    }
+
+    // Handle different formats of the matches property
+    if (matchData.matches) {
+      // If matches is already in the correct format (object with feature entries)
+      if (
+        typeof matchData.matches === "object" &&
+        !Array.isArray(matchData.matches) &&
+        !("matched" in matchData.matches)
+      ) {
+        result.matches = matchData.matches
+      }
+      // If matches has the old format with matched/unmatched arrays
+      else if (
+        typeof matchData.matches === "object" &&
+        (Array.isArray(matchData.matches.matched) || Array.isArray(matchData.matches.unmatched))
+      ) {
+        // Create a simplified version of the matches object
+        const formattedMatches = {}
+
+        // Add matched items
+        if (Array.isArray(matchData.matches.matched)) {
+          matchData.matches.matched.forEach((label, i) => {
+            formattedMatches[`matched-${i}`] = {
+              matched: true,
+              importance: 3, // Default importance
+              featureLabel: label,
+            }
+          })
+        }
+
+        // Add unmatched items
+        if (Array.isArray(matchData.matches.unmatched)) {
+          matchData.matches.unmatched.forEach((label, i) => {
+            formattedMatches[`unmatched-${i}`] = {
+              matched: false,
+              importance: 3, // Default importance
+              featureLabel: label,
+            }
+          })
+        }
+
+        result.matches = formattedMatches
+      }
+    }
+
+    console.log(`Prepared match data with ${Object.keys(result.matches).length} feature matches`)
+    return result
   }
 
   const handleDelete = async () => {
@@ -570,72 +721,6 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
     if (score >= 8) return "bg-green-100"
     if (score >= 6) return "bg-yellow-100"
     return "bg-red-100"
-  }
-
-  // Helper function to prepare preference match data for the component
-  const preparePreferenceMatchData = () => {
-    // First try to use the preferenceMatch state (which might be more up-to-date)
-    const matchData = preferenceMatch || analysis?.preference_match || null
-
-    if (!matchData) return null
-
-    // Check if we have the new format with detailed matches
-    if (
-      typeof matchData.matches === "object" &&
-      !Array.isArray(matchData.matches) &&
-      !("matched" in matchData.matches)
-    ) {
-      return {
-        score: matchData.score || 0,
-        percentage: matchData.percentage || 0,
-        matches: matchData.matches,
-      }
-    }
-
-    // If we have the old format with matched/unmatched arrays
-    if (matchData.matches && "matched" in matchData.matches) {
-      // Create a simplified version of the matches object
-      const formattedMatches = {}
-
-      // Add matched items
-      if (Array.isArray(matchData.matches.matched)) {
-        matchData.matches.matched.forEach((label, i) => {
-          formattedMatches[`matched-${i}`] = {
-            matched: true,
-            importance: 3, // Assume important
-            featureLabel: label,
-          }
-        })
-      }
-
-      // Add unmatched items
-      if (Array.isArray(matchData.matches.unmatched)) {
-        matchData.matches.unmatched.forEach((label, i) => {
-          formattedMatches[`unmatched-${i}`] = {
-            matched: false,
-            importance: 3, // Assume important
-            featureLabel: label,
-          }
-        })
-      }
-
-      return {
-        score: matchData.score || 0,
-        percentage: matchData.percentage || 0,
-        matches: formattedMatches,
-      }
-    }
-
-    // If we just have a percentage but no matches data
-    if (matchData.percentage) {
-      return {
-        score: matchData.score || 0,
-        percentage: matchData.percentage || 0,
-        matches: {},
-      }
-    }
-
-    return null
   }
 
   if (isLoading) {
@@ -1045,8 +1130,16 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                         size="sm"
                         className="mt-4"
                         onClick={() => user && property && fetchPreferenceMatch(property.id, user.id)}
+                        disabled={isCalculatingMatch}
                       >
-                        Beräkna matchning
+                        {isCalculatingMatch ? (
+                          <>
+                            <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                            Beräknar...
+                          </>
+                        ) : (
+                          "Beräkna matchning"
+                        )}
                       </Button>
                     </div>
                   )}
