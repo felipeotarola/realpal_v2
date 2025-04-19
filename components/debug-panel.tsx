@@ -99,6 +99,29 @@ export function DebugPanel({ propertyId }: DebugPanelProps) {
     }
   }
 
+  const updatePreferenceSchema = async () => {
+    setIsLoading(true)
+    try {
+      const response = await fetch("/api/admin/update-preference-schema", {
+        method: "POST",
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || "Failed to update preference schema")
+      }
+
+      const result = await response.json()
+      setResult(JSON.stringify(result, null, 2))
+      alert("Preference schema updated successfully!")
+    } catch (error) {
+      console.error("Error updating preference schema:", error)
+      setResult(JSON.stringify({ error: error.message }, null, 2))
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <>
       <Button
@@ -128,8 +151,8 @@ export function DebugPanel({ propertyId }: DebugPanelProps) {
                 <CardDescription>Diagnostic tools for troubleshooting</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex gap-2">
-                  <Button onClick={checkDatabase} disabled={isLoading}>
+                <div className="flex gap-2 flex-wrap">
+                  <Button onClick={checkDatabase} disabled={isLoading} size="sm">
                     {isLoading ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -144,7 +167,7 @@ export function DebugPanel({ propertyId }: DebugPanelProps) {
                   </Button>
 
                   {propertyId && (
-                    <Button onClick={checkPropertyExists} disabled={isLoading}>
+                    <Button onClick={checkPropertyExists} disabled={isLoading} size="sm">
                       {isLoading ? (
                         <>
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -159,9 +182,18 @@ export function DebugPanel({ propertyId }: DebugPanelProps) {
                     </Button>
                   )}
                 </div>
-                <Button onClick={updateBrokerSchema} disabled={isLoading} className="w-full" size="sm">
-                  Update Broker Schema
-                </Button>
+
+                <div className="space-y-2 mt-4">
+                  <h3 className="text-sm font-medium">Database Schema Updates</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button onClick={updateBrokerSchema} disabled={isLoading} size="sm" className="w-full">
+                      Update Broker Schema
+                    </Button>
+                    <Button onClick={updatePreferenceSchema} disabled={isLoading} size="sm" className="w-full">
+                      Update Preference Schema
+                    </Button>
+                  </div>
+                </div>
 
                 {error && <div className="p-4 bg-red-50 text-red-600 rounded-md">{error}</div>}
 

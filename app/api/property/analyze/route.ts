@@ -91,6 +91,20 @@ VIKTIGT: Alla texter ska vara på svenska. Använd svenska termer och uttryck so
 
     const analysisResult = JSON.parse(jsonMatch[0])
 
+    // Inside the try block where we save the analysis to the database
+    const analysisData = {
+      analysis_summary: analysisResult.summary,
+      total_score: analysisResult.totalScore,
+      attribute_scores: analysisResult.attributes,
+      pros: analysisResult.pros,
+      cons: analysisResult.cons,
+      investment_rating: analysisResult.investmentRating,
+      value_for_money: analysisResult.valueForMoney,
+      preference_match: analysisResult.preferenceMatch, // Add this line
+      broker_info: analysisResult.brokerInfo,
+      updated_at: new Date().toISOString(),
+    }
+
     // Returnera analysresultatet utan att spara i databasen
     return NextResponse.json({
       message: "Analys slutförd",

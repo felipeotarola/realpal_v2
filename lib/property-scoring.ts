@@ -9,17 +9,21 @@ export interface PropertyMatchResult {
 
 // Calculate how well a property matches user requirements
 export function calculatePropertyMatchScore(
-  property: Record<string, any>,
-  requirements: Record<string, { value: any; importance: number }>,
-  features: PropertyFeature[],
+  propertyFeatures: Record<string, any>,
+  userPreferences: Record<string, { value: any; importance: number }>,
+  featureDefinitions: PropertyFeature[],
 ): PropertyMatchResult {
-  let score = 0
-  let maxScore = 0
+  console.log("Starting property match score calculation")
+  console.log("Property features:", propertyFeatures)
+  console.log("User preferences:", userPreferences)
+
+  let totalScore = 0
+  let maxPossibleScore = 0
   const matches: Record<string, { matched: boolean; importance: number; featureLabel: string }> = {}
 
   // Process each requirement
-  Object.entries(requirements).forEach(([featureId, { value, importance }]) => {
-    const feature = features.find((f) => f.id === featureId)
+  Object.entries(userPreferences).forEach(([featureId, { value, importance }]) => {
+    const feature = featureDefinitions.find((f) => f.id === featureId)
     if (!feature) return
 
     // Skip if importance is 0 (not important)
@@ -34,11 +38,11 @@ export function calculatePropertyMatchScore(
 
     // Add to max possible score
     const featureWeight = importance * 10
-    maxScore += featureWeight
+    maxPossibleScore += featureWeight
 
     let matched = false
     let matchScore = 0
-    const propertyValue = property[featureId]
+    const propertyValue = propertyFeatures[featureId]
 
     // Calculate match based on feature type
     if (feature.type === "boolean") {
@@ -59,7 +63,7 @@ export function calculatePropertyMatchScore(
     }
 
     // Add to total score
-    score += matchScore
+    totalScore += matchScore
 
     // Record match details
     matches[featureId] = {
@@ -69,10 +73,16 @@ export function calculatePropertyMatchScore(
     }
   })
 
+  const percentage = maxPossibleScore > 0 ? Math.round((totalScore / maxPossibleScore) * 100) : 100
+
+  console.log("Match calculation complete:")
+  console.log(`Total score: ${totalScore}/${maxPossibleScore} = ${percentage}%`)
+  console.log("Matches:", matches)
+
   return {
-    score,
-    maxScore,
-    percentage: maxScore > 0 ? Math.round((score / maxScore) * 100) : 100,
+    score: totalScore,
+    maxScore: maxPossibleScore,
+    percentage,
     matches,
   }
 }

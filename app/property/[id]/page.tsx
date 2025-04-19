@@ -34,6 +34,8 @@ import { PropertyAssistant } from "@/components/property-assistant"
 import { BrokerInfoCard } from "@/components/broker-info-card"
 import { searchBrokerInfo } from "@/lib/tavily-search"
 import { DebugBrokerSearch } from "@/components/debug-broker-search"
+import { PreferenceMatchCard } from "@/components/preference-match-card"
+import { DebugPreferenceMatch } from "@/components/debug-preference-match"
 
 interface AttributeScore {
   name: string
@@ -57,6 +59,11 @@ interface PropertyAnalysis {
     results: any[]
     searchQuery: string
     isFallback?: boolean
+  }
+  preference_match?: {
+    score: number
+    percentage: number
+    matches: any // This can be different formats
   }
 }
 
@@ -89,10 +96,18 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [analysisError, setAnalysisError] = useState<string | null>(null)
-  const router = useRouter()
   const [isSaving, setIsSaving] = useState(false)
   const [brokerInfo, setBrokerInfo] = useState<any>(null)
   const [isBrokerInfoLoading, setIsBrokerInfoLoading] = useState(false)
+  const [preferenceMatch, setPreferenceMatch] = useState<any>(null)
+  const [debugInfo, setDebugInfo] = useState<string[]>([])
+  const router = useRouter()
+
+  // Helper function to add debug info
+  const addDebugInfo = (message: string) => {
+    console.log(message)
+    setDebugInfo((prev) => [...prev, message])
+  }
 
   // Fetch property data
   useEffect(() => {
@@ -100,14 +115,14 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
       if (!user) return
 
       try {
-        console.log("Loading property with ID:", params.id)
+        addDebugInfo("Loading property with ID: " + params.id)
 
         // First try to get from sessionStorage (if user came from saved properties)
         const sessionProperty = sessionStorage.getItem("viewProperty")
         if (sessionProperty) {
           const parsedProperty = JSON.parse(sessionProperty)
           if (parsedProperty.id === params.id) {
-            console.log("Found property in session storage:", parsedProperty.id)
+            addDebugInfo("Found property in session storage: " + parsedProperty.id)
             setProperty(parsedProperty)
             setIsLoading(false)
 
@@ -122,7 +137,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
         }
 
         // Otherwise fetch from database
-        console.log("Fetching property from database:", params.id)
+        addDebugInfo("Fetching property from database: " + params.id)
         const { data, error } = await supabase
           .from("saved_properties")
           .select("*")
@@ -139,7 +154,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
           throw new Error("Fastigheten hittades inte")
         }
 
-        console.log("Property loaded from database:", data.id)
+        addDebugInfo("Property loaded from database: " + data.id)
         setProperty(data)
 
         // If property is analyzed, fetch the analysis
@@ -164,34 +179,111 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
   const loadAnalysis = async (propertyId: string) => {
     try {
       setIsAnalysisLoading(true)
-      console.log("Loading analysis for property:", propertyId)
+      addDebugInfo("Loading analysis for property: " + propertyId)
 
+      // Fetch the analysis data with explicit selection of preference_match
       const { data, error } = await supabase
         .from("property_analyses")
-        .select("*")
+        .select("*, preference_match")
         .eq("property_id", propertyId)
         .single()
 
       if (error) {
-        console.error("Fel vid hämtning av analys:", error)
+        console.error("Error fetching analysis:", error)
         setAnalysisError("Kunde inte hämta analysen")
+        addDebugInfo("Error fetching analysis: " + error.message)
       } else if (data) {
-        console.log("Analysis loaded:", data.id)
-        setAnalysis(data)
+        addDebugInfo("Analysis loaded: " + data.id)
+
+        // Check if preference_match exists and log its structure
+        if (data.preference_match) {
+          addDebugInfo(`✅ Found preference match with score: ${data.preference_match.percentage || 0}%`)
+          addDebugInfo(`Preference match data structure: ${JSON.stringify(data.preference_match).substring(0, 200)}...`)
+          setPreferenceMatch(data.preference_match)
+        } else {
+          addDebugInfo("❌ No preference match found in analysis")
+
+          // If user is logged in, try to calculate preference match on the fly
+          if (user && property) {
+            addDebugInfo("Attempting to calculate preference match on the fly...")
+            fetchPreferenceMatch(propertyId, user.id)
+          }
+        }
 
         // Check if broker_info exists in the analysis
         if (data.broker_info && data.broker_info.results && data.broker_info.results.length > 0) {
-          console.log(`✅ Found broker info in analysis with ${data.broker_info.results.length} results`)
+          addDebugInfo(`✅ Found broker info in analysis with ${data.broker_info.results.length} results`)
           setBrokerInfo(data.broker_info)
         } else {
-          console.log("❌ No broker info found in analysis")
+          addDebugInfo("❌ No broker info found in analysis")
         }
+
+        setAnalysis(data)
       }
     } catch (error) {
-      console.error("Fel vid hämtning av analys:", error)
+      console.error("Error fetching analysis:", error)
       setAnalysisError("Kunde inte hämta analysen")
+      addDebugInfo("Error in loadAnalysis: " + (error instanceof Error ? error.message : String(error)))
     } finally {
       setIsAnalysisLoading(false)
+    }
+  }
+
+  // Fetch preference match data directly
+  const fetchPreferenceMatch = async (propertyId: string, userId: string) => {
+    try {
+      addDebugInfo("Fetching preference match data directly...")
+
+      const response = await fetch("/api/debug/calculate-preference-match", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          propertyId,
+          userId,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (data.matchResult) {
+        addDebugInfo(`✅ Successfully calculated preference match: ${data.matchResult.percentage}%`)
+
+        // Update the analysis state with the new preference match data
+        setPreferenceMatch(data.matchResult)
+
+        if (analysis) {
+          setAnalysis({
+            ...analysis,
+            preference_match: data.matchResult,
+          })
+
+          // Also update the database
+          const { error } = await supabase
+            .from("property_analyses")
+            .update({
+              preference_match: data.matchResult,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", analysis.id)
+
+          if (error) {
+            addDebugInfo("❌ Error updating analysis with preference match: " + error.message)
+          } else {
+            addDebugInfo("✅ Updated analysis in database with preference match data")
+          }
+        }
+      } else {
+        addDebugInfo("❌ No match result returned from API")
+      }
+    } catch (error) {
+      console.error("Error fetching preference match:", error)
+      addDebugInfo("Error in fetchPreferenceMatch: " + (error instanceof Error ? error.message : String(error)))
     }
   }
 
@@ -264,7 +356,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
 
     setIsBrokerInfoLoading(true)
     try {
-      console.log(`🔍 Manually searching for broker: "${property.agent}" in location: "${property.location}"`)
+      addDebugInfo(`🔍 Manually searching for broker: "${property.agent}" in location: "${property.location}"`)
 
       // Use the API endpoint for better error handling
       const response = await fetch("/api/broker-info", {
@@ -285,7 +377,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
       const data = await response.json()
 
       if (data.results && data.results.results && data.results.results.length > 0) {
-        console.log(`✅ Found ${data.results.results.length} results for broker`)
+        addDebugInfo(`✅ Found ${data.results.results.length} results for broker`)
         setBrokerInfo(data.results)
 
         // If we have an analysis, update it with the broker info
@@ -300,7 +392,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
           }
         }
       } else {
-        console.log("❌ No results found for broker")
+        addDebugInfo("❌ No results found for broker")
         alert("Kunde inte hitta information om mäklaren. Försök igen senare.")
       }
     } catch (error) {
@@ -322,19 +414,20 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
       let brokerSearchResults = null
       if (property.agent) {
         setIsBrokerInfoLoading(true)
-        console.log(`🔍 Starting broker search for: "${property.agent}" in location: "${property.location}"`)
+        addDebugInfo(`🔍 Starting broker search for: "${property.agent}" in location: "${property.location}"`)
         brokerSearchResults = await searchBrokerInfo(property.agent, property.location)
         setIsBrokerInfoLoading(false)
 
         if (brokerSearchResults && brokerSearchResults.results && brokerSearchResults.results.length > 0) {
-          console.log(`✅ Broker search completed with ${brokerSearchResults.results.length} results`)
+          addDebugInfo(`✅ Broker search completed with ${brokerSearchResults.results.length} results`)
           setBrokerInfo(brokerSearchResults)
         } else {
-          console.log(`❌ No broker information found for: ${property.agent}`)
+          addDebugInfo(`❌ No broker information found for: ${property.agent}`)
         }
       }
 
       // Call the API route with the complete property data in the payload
+      addDebugInfo("Calling property analysis API...")
       const response = await fetch("/api/property/analyze", {
         method: "POST",
         headers: {
@@ -353,6 +446,15 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
       }
 
       const data = await response.json()
+      addDebugInfo("Analysis API call successful")
+
+      // Check if preference match was calculated
+      if (data.analysis.preference_match) {
+        addDebugInfo(`✅ Preference match calculated: ${data.analysis.preference_match.percentage}%`)
+        setPreferenceMatch(data.analysis.preference_match)
+      } else {
+        addDebugInfo("❌ No preference match in analysis response")
+      }
 
       // Save the analysis to the database on the client side
       try {
@@ -363,7 +465,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
           .eq("property_id", property.id)
           .maybeSingle()
 
-        // Include broker info in the analysis data
+        // Include broker info and preference match in the analysis data
         const analysisData = {
           analysis_summary: data.analysis.analysis_summary,
           total_score: data.analysis.total_score,
@@ -374,17 +476,32 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
           value_for_money: data.analysis.value_for_money,
           updated_at: new Date().toISOString(),
           broker_info: brokerSearchResults,
+          preference_match: data.analysis.preference_match,
         }
 
         if (existingAnalysis) {
           // Update existing analysis
-          await supabase.from("property_analyses").update(analysisData).eq("id", existingAnalysis.id)
+          addDebugInfo(`Updating existing analysis: ${existingAnalysis.id}`)
+          const { error } = await supabase.from("property_analyses").update(analysisData).eq("id", existingAnalysis.id)
+
+          if (error) {
+            addDebugInfo(`❌ Error updating analysis: ${error.message}`)
+          } else {
+            addDebugInfo("✅ Analysis updated successfully")
+          }
         } else {
           // Create new analysis
-          await supabase.from("property_analyses").insert({
+          addDebugInfo("Creating new analysis record")
+          const { error } = await supabase.from("property_analyses").insert({
             property_id: property.id,
             ...analysisData,
           })
+
+          if (error) {
+            addDebugInfo(`❌ Error creating analysis: ${error.message}`)
+          } else {
+            addDebugInfo("✅ Analysis created successfully")
+          }
         }
 
         // Update the property's is_analyzed flag
@@ -400,13 +517,18 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
           is_analyzed: true,
         })
 
-        // Include broker info in the analysis state
+        // Include broker info and preference match in the analysis state
         setAnalysis({
           ...data.analysis,
           broker_info: brokerSearchResults,
+          preference_match: data.analysis.preference_match,
         })
       } catch (dbError) {
         console.error("Fel vid sparande av analys i databasen:", dbError)
+        addDebugInfo(
+          `❌ Error saving analysis to database: ${dbError instanceof Error ? dbError.message : String(dbError)}`,
+        )
+
         // Still show the analysis even if saving to DB failed
         setProperty({
           ...property,
@@ -415,11 +537,13 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
         setAnalysis({
           ...data.analysis,
           broker_info: brokerSearchResults,
+          preference_match: data.analysis.preference_match,
         })
       }
     } catch (error) {
       console.error("Fel vid analys av fastighet:", error)
       setAnalysisError(error instanceof Error ? error.message : "Kunde inte analysera fastigheten")
+      addDebugInfo(`❌ Error in handleAnalyze: ${error instanceof Error ? error.message : String(error)}`)
     } finally {
       setIsAnalyzing(false)
     }
@@ -446,6 +570,72 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
     if (score >= 8) return "bg-green-100"
     if (score >= 6) return "bg-yellow-100"
     return "bg-red-100"
+  }
+
+  // Helper function to prepare preference match data for the component
+  const preparePreferenceMatchData = () => {
+    // First try to use the preferenceMatch state (which might be more up-to-date)
+    const matchData = preferenceMatch || analysis?.preference_match || null
+
+    if (!matchData) return null
+
+    // Check if we have the new format with detailed matches
+    if (
+      typeof matchData.matches === "object" &&
+      !Array.isArray(matchData.matches) &&
+      !("matched" in matchData.matches)
+    ) {
+      return {
+        score: matchData.score || 0,
+        percentage: matchData.percentage || 0,
+        matches: matchData.matches,
+      }
+    }
+
+    // If we have the old format with matched/unmatched arrays
+    if (matchData.matches && "matched" in matchData.matches) {
+      // Create a simplified version of the matches object
+      const formattedMatches = {}
+
+      // Add matched items
+      if (Array.isArray(matchData.matches.matched)) {
+        matchData.matches.matched.forEach((label, i) => {
+          formattedMatches[`matched-${i}`] = {
+            matched: true,
+            importance: 3, // Assume important
+            featureLabel: label,
+          }
+        })
+      }
+
+      // Add unmatched items
+      if (Array.isArray(matchData.matches.unmatched)) {
+        matchData.matches.unmatched.forEach((label, i) => {
+          formattedMatches[`unmatched-${i}`] = {
+            matched: false,
+            importance: 3, // Assume important
+            featureLabel: label,
+          }
+        })
+      }
+
+      return {
+        score: matchData.score || 0,
+        percentage: matchData.percentage || 0,
+        matches: formattedMatches,
+      }
+    }
+
+    // If we just have a percentage but no matches data
+    if (matchData.percentage) {
+      return {
+        score: matchData.score || 0,
+        percentage: matchData.percentage || 0,
+        matches: {},
+      }
+    }
+
+    return null
   }
 
   if (isLoading) {
@@ -477,6 +667,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
   }
 
   const isAnalyzed = property.is_analyzed && analysis !== null
+  const preferenceMatchData = preparePreferenceMatchData()
 
   return (
     <ProtectedRoute>
@@ -827,6 +1018,41 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                 </CardContent>
               </Card>
             )}
+
+            {/* Preference Match */}
+            {isAnalyzed && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Matchning med dina preferenser</CardTitle>
+                  <CardDescription>Hur väl denna fastighet matchar dina inställda preferenser</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {preferenceMatchData ? (
+                    <PreferenceMatchCard
+                      score={preferenceMatchData.score}
+                      percentage={preferenceMatchData.percentage}
+                      matches={preferenceMatchData.matches}
+                    />
+                  ) : (
+                    <div className="p-4 bg-gray-50 rounded-md text-center">
+                      <p className="text-gray-500">Ingen preferensmatchning tillgänglig.</p>
+                      <p className="text-sm text-gray-400 mt-2">
+                        Ställ in dina preferenser under Preferenser-menyn och analysera fastigheten igen för att se
+                        matchning.
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-4"
+                        onClick={() => user && property && fetchPreferenceMatch(property.id, user.id)}
+                      >
+                        Beräkna matchning
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
 
@@ -846,14 +1072,36 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
             )}
           </CardContent>
         </Card>
-        <DebugPanel propertyId={property?.id} />
+
+        {/* Debug info */}
+        {process.env.NODE_ENV !== "production" && debugInfo.length > 0 && (
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>Debug Information</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-gray-900 text-gray-200 p-4 rounded-md font-mono text-sm overflow-auto max-h-96">
+                {debugInfo.map((msg, i) => (
+                  <div key={i} className="mb-1">
+                    {msg}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Debug components */}
+        {process.env.NODE_ENV !== "production" && (
+          <>
+            <DebugPanel propertyId={property?.id} />
+            <DebugPreferenceMatch propertyId={property?.id} />
+            {property.agent && <DebugBrokerSearch brokerName={property.agent} location={property.location} />}
+          </>
+        )}
+
         {/* Property Assistant */}
         <PropertyAssistant property={property} />
-
-        {/* Debug Broker Search */}
-        {process.env.NODE_ENV !== "production" && property.agent && (
-          <DebugBrokerSearch brokerName={property.agent} location={property.location} />
-        )}
       </div>
     </ProtectedRoute>
   )
