@@ -58,6 +58,7 @@ export function ChatDrawer() {
       >
         <Drawer.Portal>
           <Drawer.Overlay className="fixed inset-0 bg-black/40" />
+          <Drawer.Title className="sr-only">AI Chatbot</Drawer.Title>
           <Drawer.Content className="bg-background flex flex-col rounded-t-[10px] h-[75%] mt-24 fixed bottom-0 left-0 right-0 z-50">
             <div className="p-4 bg-background rounded-t-[10px] flex flex-col h-full">
               <div className="flex items-center justify-between">
