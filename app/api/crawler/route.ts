@@ -78,6 +78,12 @@ async function extractPropertyDataWithFirecrawl(url: string) {
         monthlyFee: { type: "string", description: "Monthly fee or maintenance cost (if available)" },
         energyRating: { type: "string", description: "Energy rating (if available)" },
         agent: { type: "string", description: "Real estate agent or company (if available)" },
+        images: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            "All image URLs found on the property page, including gallery images, floor plans, and property photos",
+        },
       },
       required: ["title", "price", "size", "rooms", "location", "description", "features"],
     }
@@ -95,7 +101,7 @@ async function extractPropertyDataWithFirecrawl(url: string) {
         jsonOptions: {
           schema: schema,
           systemPrompt:
-            "You are an expert in real estate data extraction. Extract accurate property details from this page.",
+            "You are an expert in real estate data extraction. Extract accurate property details from this page. IMPORTANT: Find and extract ALL image URLs from the property listing, including gallery images, thumbnails, floor plans, and any other property-related images. Look for image carousels, galleries, and hidden image containers.",
         },
       }),
     })
@@ -120,8 +126,26 @@ async function extractPropertyDataWithFirecrawl(url: string) {
 
     // Försök att extrahera bild-URL:er från fastighetsdata
     if (result.data.json && Array.isArray(result.data.json.images)) {
-      images = [...images, ...result.data.json.images]
+      // Filter out duplicates and non-image URLs
+      const imageUrls = result.data.json.images.filter(
+        (url) =>
+          url &&
+          typeof url === "string" &&
+          (url.endsWith(".jpg") ||
+            url.endsWith(".jpeg") ||
+            url.endsWith(".png") ||
+            url.endsWith(".webp") ||
+            url.includes("image")),
+      )
+
+      images = [...images, ...imageUrls]
     }
+
+    // Remove duplicate images
+    images = [...new Set(images)]
+
+    // Limit to a reasonable number (50) to avoid overwhelming the UI
+    images = images.slice(0, 50)
 
     // Rensa upp data för att matcha vårt PropertyData-gränssnitt
     const propertyData: PropertyData = {
@@ -227,53 +251,127 @@ function extractImages(html: string, baseUrl: string) {
   try {
     const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi
     const srcsetRegex = /<img[^>]+srcset=["']([^"']+)["'][^>]*>/gi
+    const backgroundRegex = /background-image\s*:\s*url$$['"]?([^'"()]+)['"]?$$/gi
+    const dataBackgroundRegex = /data-background(?:-image)?=["']([^"']+)["']/gi
+    const jsonImageRegex = /"(?:image|img|photo|picture|src)(?:Url|Src|Path)?"\s*:\s*"([^"]+)"/gi
+
     const images = new Set<string>()
     const baseUrlObj = new URL(baseUrl)
 
-    // Extrahera vanliga src-attribut
-    let match
-    while ((match = imgRegex.exec(html)) !== null) {
-      let imgSrc = match[1].trim()
-
-      // Hoppa över data-URL:er, SVG:er och små bilder
-      if (imgSrc.startsWith("data:") || imgSrc.includes(".svg")) {
-        continue
+    // Helper function to normalize URLs
+    const normalizeUrl = (imgSrc: string): string | null => {
+      // Skip data URLs, SVGs, and tiny images
+      if (
+        imgSrc.startsWith("data:") ||
+        imgSrc.includes(".svg") ||
+        imgSrc.includes("icon") ||
+        imgSrc.includes("logo") ||
+        imgSrc.length < 10
+      ) {
+        return null
       }
 
-      // Konvertera relativa URL:er till absoluta
+      // Convert relative URLs to absolute
       if (imgSrc.startsWith("/")) {
-        imgSrc = baseUrlObj.origin + imgSrc
+        return baseUrlObj.origin + imgSrc
       } else if (!imgSrc.startsWith("http")) {
-        imgSrc = new URL(imgSrc, baseUrl).href
+        try {
+          return new URL(imgSrc, baseUrl).href
+        } catch (e) {
+          return null
+        }
       }
 
-      images.add(imgSrc)
+      return imgSrc
     }
 
-    // Extrahera srcset-attribut
+    // Extract from regular img tags
+    let match
+    while ((match = imgRegex.exec(html)) !== null) {
+      const normalizedUrl = normalizeUrl(match[1].trim())
+      if (normalizedUrl) images.add(normalizedUrl)
+    }
+
+    // Extract from srcset attributes
     while ((match = srcsetRegex.exec(html)) !== null) {
       const srcset = match[1].trim()
       const srcsetParts = srcset.split(",")
 
       for (const part of srcsetParts) {
         const [url] = part.trim().split(" ")
-        if (url && !url.startsWith("data:") && !url.includes(".svg")) {
-          let imgSrc = url.trim()
-
-          // Konvertera relativa URL:er till absoluta
-          if (imgSrc.startsWith("/")) {
-            imgSrc = baseUrlObj.origin + imgSrc
-          } else if (!imgSrc.startsWith("http")) {
-            imgSrc = new URL(imgSrc, baseUrl).href
-          }
-
-          images.add(imgSrc)
+        if (url) {
+          const normalizedUrl = normalizeUrl(url.trim())
+          if (normalizedUrl) images.add(normalizedUrl)
         }
       }
     }
 
-    // Konvertera Set till Array och begränsa till 20 bilder för att undvika att överbelasta UI
-    return Array.from(images).slice(0, 20)
+    // Extract from CSS background-image
+    while ((match = backgroundRegex.exec(html)) !== null) {
+      const normalizedUrl = normalizeUrl(match[1].trim())
+      if (normalizedUrl) images.add(normalizedUrl)
+    }
+
+    // Extract from data-background attributes
+    while ((match = dataBackgroundRegex.exec(html)) !== null) {
+      const normalizedUrl = normalizeUrl(match[1].trim())
+      if (normalizedUrl) images.add(normalizedUrl)
+    }
+
+    // Extract from JSON-like structures in the HTML
+    while ((match = jsonImageRegex.exec(html)) !== null) {
+      const normalizedUrl = normalizeUrl(match[1].trim())
+      if (normalizedUrl) images.add(normalizedUrl)
+    }
+
+    // Look for JSON data in script tags that might contain image arrays
+    const scriptRegex = /<script[^>]*>([\s\S]*?)<\/script>/gi
+    while ((match = scriptRegex.exec(html)) !== null) {
+      const scriptContent = match[1]
+      if (
+        scriptContent.includes('"image"') ||
+        scriptContent.includes('"images"') ||
+        scriptContent.includes('"photos"') ||
+        scriptContent.includes('"gallery"')
+      ) {
+        try {
+          // Try to find JSON objects in the script
+          const jsonMatches = scriptContent.match(/\{[\s\S]*?\}/g)
+          if (jsonMatches) {
+            for (const jsonStr of jsonMatches) {
+              try {
+                const json = JSON.parse(jsonStr)
+                const extractImagesFromObj = (obj: any) => {
+                  if (!obj) return
+                  if (typeof obj === "string" && obj.match(/\.(jpg|jpeg|png|webp)/i)) {
+                    const normalizedUrl = normalizeUrl(obj)
+                    if (normalizedUrl) images.add(normalizedUrl)
+                  } else if (Array.isArray(obj)) {
+                    obj.forEach((item) => extractImagesFromObj(item))
+                  } else if (typeof obj === "object") {
+                    for (const key in obj) {
+                      if (key.match(/(image|img|photo|picture|src)/i)) {
+                        extractImagesFromObj(obj[key])
+                      } else {
+                        extractImagesFromObj(obj[key])
+                      }
+                    }
+                  }
+                }
+                extractImagesFromObj(json)
+              } catch (e) {
+                // Ignore JSON parse errors
+              }
+            }
+          }
+        } catch (e) {
+          // Ignore errors in script processing
+        }
+      }
+    }
+
+    // Convert Set to Array and limit to 50 images to avoid overwhelming the UI
+    return Array.from(images).slice(0, 50)
   } catch (error) {
     console.error("Error extracting images:", error)
     return []

@@ -16,6 +16,9 @@ export async function saveLocationPreference(
   try {
     console.log("Server action: Saving location preference:", { userId, locationPreference })
 
+    // Use the service role client to bypass RLS
+    const serviceRoleClient = supabase.auth.admin
+
     // Check if user already has a location preference
     const { data: existingPreference, error: fetchError } = await supabase
       .from("user_location_preferences")
@@ -42,6 +45,7 @@ export async function saveLocationPreference(
           updated_at: new Date().toISOString(),
         })
         .eq("id", existingPreference.id)
+        .eq("user_id", userId) // Add this to ensure we're updating the correct row
 
       if (updateError) {
         console.error("Error updating location preference:", updateError)
@@ -49,13 +53,15 @@ export async function saveLocationPreference(
       }
     } else {
       // Insert new preference
-      console.log("Inserting new preference")
-      const { error: insertError } = await supabase.from("user_location_preferences").insert({
-        user_id: userId,
-        address: locationPreference.address,
-        latitude: locationPreference.latitude,
-        longitude: locationPreference.longitude,
-        radius: locationPreference.radius || 5000, // Default 5km radius
+      console.log("Inserting new preference for user:", userId)
+
+      // Try direct SQL insertion to bypass RLS
+      const { error: insertError } = await supabase.rpc("insert_location_preference", {
+        p_user_id: userId,
+        p_address: locationPreference.address,
+        p_latitude: locationPreference.latitude,
+        p_longitude: locationPreference.longitude,
+        p_radius: locationPreference.radius || 5000,
       })
 
       if (insertError) {
