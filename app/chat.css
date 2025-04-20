@@ -1,110 +1,19 @@
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes bounce {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-5px);
-  }
-}
-
-.animate-bounce {
-  animation: bounce 1.5s infinite;
-}
-
-/* Add this to your globals.css or a separate chat.css file */
-.prose img {
-  border-radius: 0.375rem;
-  margin: 1rem 0;
-}
-
-.prose pre {
-  background-color: #f3f4f6;
-  border-radius: 0.375rem;
-  padding: 1rem;
-  overflow-x: auto;
-  font-size: 0.875rem;
-}
-
-.prose code {
-  background-color: #f3f4f6;
-  border-radius: 0.25rem;
-  padding: 0.125rem 0.25rem;
-  font-size: 0.75rem;
-}
-
-.prose a {
-  color: #2563eb;
+/* Add styles for chat links */
+.chat-message a {
+  color: #2563eb; /* blue-600 */
   text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
-.prose a:hover {
+.chat-message a:hover {
   text-decoration: underline;
+  color: #1d4ed8; /* blue-700 */
 }
 
-.prose ul {
-  list-style-type: disc;
-  padding-left: 1.5rem;
-}
-
-.prose ol {
-  list-style-type: decimal;
-  padding-left: 1.5rem;
-}
-
-/* Mobile optimizations for chat */
+/* Make sure links are properly styled on mobile */
 @media (max-width: 640px) {
-  .prose p,
-  .prose li {
-    font-size: 0.875rem;
-    line-height: 1.4;
+  .chat-message a {
+    word-break: break-word;
   }
-
-  .prose h1 {
-    font-size: 1.25rem;
-  }
-
-  .prose h2 {
-    font-size: 1.125rem;
-  }
-
-  .prose h3 {
-    font-size: 1rem;
-  }
-
-  .prose pre {
-    padding: 0.75rem;
-    font-size: 0.75rem;
-  }
-
-  .prose code {
-    font-size: 0.75rem;
-  }
-
-  .prose img {
-    margin: 0.5rem 0;
-  }
-}
-
-/* Fix for iOS height issues */
-.h-full-ios {
-  height: -webkit-fill-available;
-}
-
-/* Prevent scrolling when drawer is open */
-.drawer-open {
-  overflow: hidden;
-  position: fixed;
-  width: 100%;
 }

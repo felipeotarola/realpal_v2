@@ -9,7 +9,7 @@ export function parseMessage(message: string): React.ReactNode {
   const parsedMessage = message
     .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
     .replace(/\*(.*?)\*/g, "<em>$1</em>")
-    .replace(/\[(.*?)\]$$(.*?)$$/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+    .replace(/\[(.*?)\]$$(.*?)$$/g, '<a href="$2" class="text-blue-600 hover:underline">$1</a>')
     .replace(/\n/g, "<br />")
 
   return React.createElement("div", { dangerouslySetInnerHTML: { __html: parsedMessage } })

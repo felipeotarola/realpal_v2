@@ -11,6 +11,7 @@ import { MarkdownRenderer } from "@/components/markdown-renderer"
 import { useAuth } from "@/contexts/auth-context"
 import { fetchUserContext, formatUserContextForPrompt } from "@/lib/user-context-fetcher"
 import { getAssistantSystemPrompt } from "@/lib/ai-assistant-prompt"
+import { useRouter } from "next/navigation"
 
 interface ChatInterfaceProps {
   initialSystemMessage?: string
@@ -25,6 +26,7 @@ export default function ChatInterface({
   propertyContext,
   userContext,
 }: ChatInterfaceProps) {
+  const router = useRouter()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { user } = useAuth()
   const [enabled, setEnabled] = useState(false)
@@ -281,7 +283,7 @@ export default function ChatInterface({
                     )}
                   </div>
                 ) : (
-                  <div className="text-sm">
+                  <div className="text-sm chat-message">
                     <MarkdownRenderer content={message.content} />
                   </div>
                 )}

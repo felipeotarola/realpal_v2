@@ -1,4 +1,5 @@
 "use client"
+
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeExternalLinks from "rehype-external-links"
@@ -19,7 +20,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
             <a
               {...props}
               className="text-blue-600 hover:underline break-words"
-              target="_blank"
+              target={props.href?.startsWith("/") ? "_self" : "_blank"}
               rel="noopener noreferrer"
             />
           ),

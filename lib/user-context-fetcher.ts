@@ -12,6 +12,7 @@ export interface SavedPropertyContext {
   monthly_fee?: string
   year_built?: string
   energy_rating?: string
+  url?: string // Add URL field
 }
 
 export interface ComparisonContext {
@@ -50,6 +51,13 @@ export async function fetchUserContext(userId: string) {
       .limit(10) // Begränsa till de 10 senaste för att hålla prompten rimlig
 
     if (savedError) throw savedError
+
+    // Add URL to each property
+    const propertiesWithUrls =
+      savedProperties?.map((property) => ({
+        ...property,
+        url: `/property/${property.id}`, // Add URL to property page
+      })) || []
 
     // Hämta sparade jämförelser med beskrivningar
     const { data: comparisons, error: compError } = await supabase
@@ -129,7 +137,7 @@ export async function fetchUserContext(userId: string) {
     const significantPreferences = preferences.filter((pref) => pref.importance > 0)
 
     // Hämta fastighetsanalyser för sparade fastigheter
-    const propertyIds = savedProperties?.map((p) => p.id) || []
+    const propertyIds = propertiesWithUrls?.map((p) => p.id) || []
     let propertyAnalyses: PropertyAnalysis[] = []
 
     if (propertyIds.length > 0) {
@@ -144,7 +152,7 @@ export async function fetchUserContext(userId: string) {
     }
 
     return {
-      savedProperties: savedProperties || [],
+      savedProperties: propertiesWithUrls,
       comparisons: enhancedComparisons,
       preferences: significantPreferences,
       propertyAnalyses: propertyAnalyses,
@@ -179,6 +187,8 @@ export function formatUserContextForPrompt(
       if (property.features && property.features.length > 0) {
         contextString += `   Egenskaper: ${property.features.join(", ")}\n`
       }
+      // Add URL to property
+      if (property.url) contextString += `   URL: ${property.url}\n`
 
       // Add analysis information if available
       const analysis = propertyAnalyses.find((a) => a.property_id === property.id)
