@@ -41,13 +41,6 @@ export function ChatDrawer({ propertyContext }: ChatDrawerProps) {
     loadUserContext()
   }, [user])
 
-  // Log property context when it changes
-  useEffect(() => {
-    if (propertyContext) {
-      console.log("Property context available:", propertyContext.substring(0, 100) + "...")
-    }
-  }, [propertyContext])
-
   const handleButtonClick = () => {
     console.log("Floating button clicked")
     setIsOpen(true)
@@ -62,14 +55,14 @@ export function ChatDrawer({ propertyContext }: ChatDrawerProps) {
     <>
       {user && (
         <>
-          {/* Standalone button outside of Drawer.Root */}
+          {/* Floating chat button */}
           <Button
-            className="fixed bottom-4 right-4 rounded-full w-14 h-14 shadow-lg flex items-center justify-center"
+            className="fixed bottom-4 right-4 rounded-full w-12 h-12 shadow-lg flex items-center justify-center z-40"
             size="icon"
             variant="default"
             onClick={handleButtonClick}
           >
-            <MessageSquare className="h-6 w-6" />
+            <MessageSquare className="h-5 w-5" />
           </Button>
 
           <Drawer.Root
@@ -80,21 +73,23 @@ export function ChatDrawer({ propertyContext }: ChatDrawerProps) {
             }}
           >
             <Drawer.Portal>
-              <Drawer.Overlay className="fixed inset-0 bg-black/40" />
-              <Drawer.Content className="bg-background flex flex-col rounded-t-[10px] h-[75%] mt-24 fixed bottom-0 left-0 right-0 z-50">
-                <div className="p-4 bg-background rounded-t-[10px] flex flex-col h-full">
-                  <div className="flex items-center justify-between">
+              <Drawer.Overlay className="fixed inset-0 bg-black/40 z-40" />
+              <Drawer.Content className="bg-background flex flex-col rounded-t-[10px] h-[100dvh] fixed bottom-0 left-0 right-0 z-50 max-h-[100dvh]">
+                <div className="p-2 sm:p-4 bg-background rounded-t-[10px] flex flex-col h-full">
+                  <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-secondary">
-                        <MessageSquare className="h-4 w-4 text-secondary-foreground" />
+                      <div className="flex items-center justify-center w-7 h-7 rounded-full bg-secondary">
+                        <MessageSquare className="h-3.5 w-3.5 text-secondary-foreground" />
                       </div>
-                      <h2 className="text-xl font-semibold">RealPal Assistent</h2>
+                      <Drawer.Title className="text-sm font-medium text-muted-foreground">
+                        <span className="hidden sm:inline">RealPal Assistent</span>
+                      </Drawer.Title>
                     </div>
-                    <Button variant="ghost" size="icon" onClick={handleCloseClick}>
+                    <Button variant="ghost" size="sm" onClick={handleCloseClick} className="h-8 w-8 p-0">
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
-                  <div className="mt-4 flex-1 overflow-hidden">
+                  <div className="flex-1 overflow-hidden">
                     <ChatInterface
                       initialSystemMessage={getAssistantSystemPrompt(propertyContext, userContextString)}
                       initialWelcomeMessage="Hej! Jag är RealPal, din fastighetsassistent. Hur kan jag hjälpa dig idag?"

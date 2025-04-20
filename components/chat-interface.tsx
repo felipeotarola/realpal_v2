@@ -229,38 +229,38 @@ export default function ChatInterface({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-2 sm:p-3 space-y-3">
         {messages.map((message) => (
           <div
             key={message.id}
             className={`flex ${message.role === "user" ? "justify-end" : "justify-start"} items-start`}
           >
             {message.role === "assistant" && (
-              <div className="flex flex-col items-center mr-2">
-                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100">
-                  <Bot className="h-4 w-4 text-blue-600" />
+              <div className="flex flex-col items-center mr-1.5 sm:mr-2">
+                <div className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-blue-100">
+                  <Bot className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-blue-600" />
                 </div>
-                <span className="text-xs font-medium text-blue-600 mt-1">AI</span>
+                <span className="text-[10px] sm:text-xs font-medium text-blue-600 mt-0.5">AI</span>
               </div>
             )}
 
             <div className="flex flex-col">
               <div
-                className={`max-w-[80%] rounded-lg p-3 ${
+                className={`max-w-[85%] sm:max-w-[80%] rounded-lg p-2 sm:p-2.5 text-sm ${
                   message.role === "user" ? "bg-blue-500 text-white" : "bg-gray-100 text-gray-800"
                 }`}
               >
                 {message.role === "user" ? (
                   <div>
-                    <p className="leading-relaxed tracking-wide">{message.content}</p>
+                    <p className="leading-relaxed tracking-wide text-sm">{message.content}</p>
 
                     {/* Display attachments for user messages */}
                     {message.experimental_attachments && message.experimental_attachments.length > 0 && (
-                      <div className="mt-3 space-y-2">
+                      <div className="mt-2 space-y-1.5">
                         {message.experimental_attachments.map((attachment, idx) => (
                           <div key={idx}>
                             {attachment.contentType?.startsWith("image/") ? (
-                              <div className="rounded-md overflow-hidden border mt-2 bg-white/20">
+                              <div className="rounded-md overflow-hidden border mt-1.5 bg-white/20">
                                 {attachment.url && (
                                   <img
                                     src={attachment.url || "/placeholder.svg"}
@@ -270,9 +270,9 @@ export default function ChatInterface({
                                 )}
                               </div>
                             ) : (
-                              <div className="flex items-center space-x-2 p-2 border rounded-md bg-white/20">
-                                <FileIcon className="h-4 w-4 text-white" />
-                                <span className="text-sm">{attachment.name || `File ${idx + 1}`}</span>
+                              <div className="flex items-center space-x-1.5 p-1.5 border rounded-md bg-white/20">
+                                <FileIcon className="h-3.5 w-3.5 text-white" />
+                                <span className="text-xs">{attachment.name || `File ${idx + 1}`}</span>
                               </div>
                             )}
                           </div>
@@ -281,20 +281,24 @@ export default function ChatInterface({
                     )}
                   </div>
                 ) : (
-                  <MarkdownRenderer content={message.content} />
+                  <div className="text-sm">
+                    <MarkdownRenderer content={message.content} />
+                  </div>
                 )}
               </div>
-              <div className={`text-xs text-gray-500 mt-1 ${message.role === "user" ? "text-right" : "text-left"}`}>
+              <div
+                className={`text-[10px] sm:text-xs text-gray-500 mt-0.5 ${message.role === "user" ? "text-right" : "text-left"}`}
+              >
                 {formatMessageTime(messageTimes[message.id])}
               </div>
             </div>
 
             {message.role === "user" && (
-              <div className="flex flex-col items-center ml-2">
-                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-500">
-                  <User className="h-4 w-4 text-white" />
+              <div className="flex flex-col items-center ml-1.5 sm:ml-2">
+                <div className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-blue-500">
+                  <User className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-white" />
                 </div>
-                <span className="text-xs font-medium text-blue-600 mt-1">Du</span>
+                <span className="text-[10px] sm:text-xs font-medium text-blue-600 mt-0.5">Du</span>
               </div>
             )}
           </div>
@@ -302,37 +306,37 @@ export default function ChatInterface({
 
         {isLoading && (
           <div className="flex justify-start items-start">
-            <div className="flex flex-col items-center mr-2">
-              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100">
-                <Bot className="h-4 w-4 text-blue-600" />
+            <div className="flex flex-col items-center mr-1.5 sm:mr-2">
+              <div className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-blue-100">
+                <Bot className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-blue-600" />
               </div>
-              <span className="text-xs font-medium text-blue-600 mt-1">AI</span>
+              <span className="text-[10px] sm:text-xs font-medium text-blue-600 mt-0.5">AI</span>
             </div>
             <div className="flex flex-col">
-              <div className="max-w-[80%] rounded-lg p-3 bg-gray-100 text-gray-800">
-                <div className="flex space-x-2">
+              <div className="max-w-[85%] sm:max-w-[80%] rounded-lg p-2 sm:p-2.5 bg-gray-100 text-gray-800">
+                <div className="flex space-x-1.5">
                   <div
-                    className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"
+                    className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce"
                     style={{ animationDelay: "0ms" }}
                   ></div>
                   <div
-                    className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"
+                    className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce"
                     style={{ animationDelay: "300ms" }}
                   ></div>
                   <div
-                    className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"
+                    className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce"
                     style={{ animationDelay: "600ms" }}
                   ></div>
                 </div>
               </div>
-              <div className="text-xs text-gray-500 mt-1">Just nu</div>
+              <div className="text-[10px] sm:text-xs text-gray-500 mt-0.5">Just nu</div>
             </div>
           </div>
         )}
 
         {error && (
           <div className="flex justify-center">
-            <div className="max-w-[80%] rounded-lg p-3 bg-red-100 text-red-800">
+            <div className="max-w-[85%] sm:max-w-[80%] rounded-lg p-2 sm:p-2.5 bg-red-100 text-red-800 text-sm">
               Ett fel uppstod. Försök igen senare.
             </div>
           </div>
@@ -341,46 +345,46 @@ export default function ChatInterface({
         <div ref={messagesEndRef} />
       </div>
 
-      <form onSubmit={handleFormSubmit} className="p-4 border-t">
+      <form onSubmit={handleFormSubmit} className="p-2 sm:p-3 border-t">
         {/* File preview */}
         {files && files.length > 0 && (
-          <div className="mb-2">
+          <div className="mb-1.5 sm:mb-2">
             <div className="relative inline-block">
               <div className="rounded-md overflow-hidden border">
                 {files[0].type.startsWith("image/") ? (
                   <img
                     src={URL.createObjectURL(files[0]) || "/placeholder.svg"}
                     alt={`File preview`}
-                    className="max-h-32 object-contain"
+                    className="max-h-24 sm:max-h-32 object-contain"
                   />
                 ) : (
-                  <div className="flex items-center space-x-2 p-2 border rounded-md">
-                    <FileIcon className="h-5 w-5" />
-                    <span className="text-sm truncate max-w-[100px]">{files[0].name}</span>
+                  <div className="flex items-center space-x-1.5 p-1.5 border rounded-md">
+                    <FileIcon className="h-4 w-4" />
+                    <span className="text-xs truncate max-w-[80px] sm:max-w-[100px]">{files[0].name}</span>
                   </div>
                 )}
               </div>
               <button
                 type="button"
                 onClick={clearFiles}
-                className="absolute -top-2 -right-2 bg-white text-gray-800 rounded-full p-1 shadow-sm hover:bg-gray-100 border"
+                className="absolute -top-1.5 -right-1.5 bg-white text-gray-800 rounded-full p-0.5 shadow-sm hover:bg-gray-100 border"
                 aria-label="Ta bort fil"
               >
-                <X className="h-3 w-3" />
+                <X className="h-2.5 w-2.5" />
               </button>
             </div>
           </div>
         )}
 
-        <div className="flex gap-2">
+        <div className="flex gap-1.5 sm:gap-2">
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="p-2 rounded-md border bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+            className="p-1.5 sm:p-2 rounded-md border bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
             aria-label="Ladda upp bild"
             disabled={isLoading || isLoadingContext}
           >
-            <ImageIcon className="h-5 w-5" />
+            <ImageIcon className="h-4 w-4 sm:h-5 sm:w-5" />
           </button>
           <input
             type="file"
@@ -395,19 +399,23 @@ export default function ChatInterface({
             onChange={handleInputChange}
             placeholder={files && files.length > 0 ? "Fråga om denna bild..." : "Skriv ett meddelande..."}
             disabled={isLoading || isLoadingContext}
-            className="flex-1"
+            className="flex-1 h-9 text-sm"
           />
-          <Button type="submit" disabled={isLoading || isLoadingContext || (!input.trim() && !files?.length)}>
-            {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send size={18} />}
+          <Button
+            type="submit"
+            disabled={isLoading || isLoadingContext || (!input.trim() && !files?.length)}
+            className="h-9 px-2.5"
+          >
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send size={16} />}
           </Button>
         </div>
 
         {/* Add quick action buttons for property-related queries */}
-        <div className="flex flex-wrap gap-2 mt-2">
+        <div className="flex flex-wrap gap-1.5 mt-2">
           <button
             type="button"
             onClick={() => handlePropertyQuery("Visa mina sparade fastigheter")}
-            className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full hover:bg-blue-200 transition-colors"
+            className="text-[10px] sm:text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full hover:bg-blue-200 transition-colors"
             disabled={isLoading || isLoadingContext}
           >
             Visa sparade fastigheter
@@ -415,7 +423,7 @@ export default function ChatInterface({
           <button
             type="button"
             onClick={() => handlePropertyQuery("Vilka är mina preferenser?")}
-            className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full hover:bg-blue-200 transition-colors"
+            className="text-[10px] sm:text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full hover:bg-blue-200 transition-colors"
             disabled={isLoading || isLoadingContext}
           >
             Visa preferenser
@@ -423,17 +431,21 @@ export default function ChatInterface({
           <button
             type="button"
             onClick={() => handlePropertyQuery("Vilken fastighet passar mig bäst?")}
-            className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full hover:bg-blue-200 transition-colors"
+            className="text-[10px] sm:text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full hover:bg-blue-200 transition-colors"
             disabled={isLoading || isLoadingContext}
           >
             Rekommendation
           </button>
         </div>
 
-        <p className="text-xs text-gray-500 text-center mt-2">Tips: Ladda upp bilder för att analysera dem (max 4MB)</p>
+        <p className="text-[10px] sm:text-xs text-gray-500 text-center mt-1.5">
+          Tips: Ladda upp bilder för att analysera dem (max 4MB)
+        </p>
       </form>
 
-      {isLoadingContext && <div className="text-xs text-center text-gray-500 pb-2">Laddar din information...</div>}
+      {isLoadingContext && (
+        <div className="text-[10px] sm:text-xs text-center text-gray-500 pb-1.5">Laddar din information...</div>
+      )}
     </div>
   )
 }
