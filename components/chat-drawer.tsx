@@ -27,10 +27,10 @@ export function ChatDrawer({ propertyContext }: ChatDrawerProps) {
       setIsLoadingContext(true)
       try {
         const { savedProperties, comparisons, preferences, propertyAnalyses } = await fetchUserContext(user.id)
-        
         const contextString = formatUserContextForPrompt(savedProperties, comparisons, preferences, propertyAnalyses)
         setUserContextString(contextString)
         console.log("Loaded user context with", savedProperties.length, "saved properties")
+        console.log("User context string:", contextString.substring(0, 200) + "...")
       } catch (error) {
         console.error("Failed to load user context:", error)
       } finally {
@@ -81,7 +81,6 @@ export function ChatDrawer({ propertyContext }: ChatDrawerProps) {
           >
             <Drawer.Portal>
               <Drawer.Overlay className="fixed inset-0 bg-black/40" />
-              {user && (
               <Drawer.Content className="bg-background flex flex-col rounded-t-[10px] h-[75%] mt-24 fixed bottom-0 left-0 right-0 z-50">
                 <div className="p-4 bg-background rounded-t-[10px] flex flex-col h-full">
                   <div className="flex items-center justify-between">
@@ -89,9 +88,7 @@ export function ChatDrawer({ propertyContext }: ChatDrawerProps) {
                       <div className="flex items-center justify-center w-8 h-8 rounded-full bg-secondary">
                         <MessageSquare className="h-4 w-4 text-secondary-foreground" />
                       </div>
-                      <Drawer.Title className="text-lg font-semibold">
-                        <span className="text-secondary-foreground">RealPal</span>
-                      </Drawer.Title>
+                      <h2 className="text-xl font-semibold">RealPal Assistent</h2>
                     </div>
                     <Button variant="ghost" size="icon" onClick={handleCloseClick}>
                       <X className="h-4 w-4" />
@@ -102,11 +99,11 @@ export function ChatDrawer({ propertyContext }: ChatDrawerProps) {
                       initialSystemMessage={getAssistantSystemPrompt(propertyContext, userContextString)}
                       initialWelcomeMessage="Hej! Jag är RealPal, din fastighetsassistent. Hur kan jag hjälpa dig idag?"
                       propertyContext={propertyContext}
+                      userContext={userContextString}
                     />
                   </div>
                 </div>
               </Drawer.Content>
-              )}
             </Drawer.Portal>
           </Drawer.Root>
         </>

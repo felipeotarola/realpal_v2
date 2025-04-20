@@ -42,7 +42,6 @@ export interface PropertyAnalysis {
 export async function fetchUserContext(userId: string) {
   try {
     // Hämta sparade fastigheter med mer detaljerad information
-    console.log("Fetching saved properties for user:", userId)
     const { data: savedProperties, error: savedError } = await supabase
       .from("saved_properties")
       .select("id, title, price, location, size, rooms, description, features, monthly_fee, year_built, energy_rating")
@@ -50,7 +49,6 @@ export async function fetchUserContext(userId: string) {
       .order("created_at", { ascending: false })
       .limit(10) // Begränsa till de 10 senaste för att hålla prompten rimlig
 
-      console.log("Fetched saved properties:", savedProperties)
     if (savedError) throw savedError
 
     // Hämta sparade jämförelser med beskrivningar
@@ -61,7 +59,6 @@ export async function fetchUserContext(userId: string) {
       .order("last_viewed_at", { ascending: false })
       .limit(5) // Begränsa till de 5 senaste jämförelserna
 
-      console.log("Fetched comparisons:", comparisons)
     if (compError) throw compError
 
     // Hämta fastighetstitlar för jämförelser

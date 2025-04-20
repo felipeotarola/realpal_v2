@@ -16,18 +16,20 @@ interface ChatInterfaceProps {
   initialSystemMessage?: string
   initialWelcomeMessage?: string
   propertyContext?: string
+  userContext?: string
 }
 
 export default function ChatInterface({
   initialSystemMessage = "Du är en hjälpsam assistent.",
   initialWelcomeMessage = "Hej! Hur kan jag hjälpa dig idag?",
   propertyContext,
+  userContext,
 }: ChatInterfaceProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { user } = useAuth()
   const [enabled, setEnabled] = useState(false)
-  const [userContextString, setUserContextString] = useState<string>("")
   const [isLoadingContext, setIsLoadingContext] = useState(false)
+  const [localUserContext, setLocalUserContext] = useState<string>(userContext || "")
   const [messageTimes, setMessageTimes] = useState<Record<string, Date>>({})
 
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -76,16 +78,16 @@ export default function ChatInterface({
     return date.toLocaleDateString([], { month: "short", day: "numeric" })
   }
 
-  // Fetch user context when component loads or user changes
+  // Fetch user context if not provided
   useEffect(() => {
     async function loadUserContext() {
-      if (!user) return
+      if (!user || userContext) return
 
       setIsLoadingContext(true)
       try {
         const { savedProperties, comparisons, preferences, propertyAnalyses } = await fetchUserContext(user.id)
         const contextString = formatUserContextForPrompt(savedProperties, comparisons, preferences, propertyAnalyses)
-        setUserContextString(contextString)
+        setLocalUserContext(contextString)
         console.log("Loaded user context with", savedProperties.length, "saved properties")
       } catch (error) {
         console.error("Failed to load user context:", error)
@@ -95,7 +97,7 @@ export default function ChatInterface({
     }
 
     loadUserContext()
-  }, [user])
+  }, [user, userContext])
 
   useEffect(() => {
     if (user) {
@@ -106,7 +108,15 @@ export default function ChatInterface({
   }, [user])
 
   // Create the system message with both property context and user context
-  const systemMessage = getAssistantSystemPrompt(propertyContext, userContextString)
+  const systemMessage = getAssistantSystemPrompt(propertyContext, localUserContext)
+
+  // Log the system message for debugging
+  useEffect(() => {
+    console.log("System message created with property context and user context")
+    console.log("Property context length:", propertyContext?.length || 0)
+    console.log("User context length:", localUserContext?.length || 0)
+    console.log("Total system message length:", systemMessage.length)
+  }, [propertyContext, localUserContext, systemMessage])
 
   const { messages, input, handleInputChange, handleSubmit, isLoading, error, data } = useChat({
     api: "/api/chat",
@@ -205,7 +215,16 @@ export default function ChatInterface({
       bubbles: true,
       cancelable: true,
     }) as unknown as React.FormEvent<HTMLFormElement>
-    handleSubmit(event)
+
+    // Submit with the system message
+    handleSubmit(event, {
+      options: {
+        body: {
+          threadId,
+          systemMessage: systemMessage,
+        },
+      },
+    })
   }
 
   return (

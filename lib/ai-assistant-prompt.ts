@@ -1,5 +1,10 @@
 export const getAssistantSystemPrompt = (propertyContext?: string, userContext?: string) => {
-  return `Du är RealPal, en specialiserad AI-assistent för den svenska fastighetsmarknaden.
+  // Log the inputs for debugging
+  console.log("Building system prompt with:")
+  console.log("- Property context length:", propertyContext?.length || 0)
+  console.log("- User context length:", userContext?.length || 0)
+
+  const systemPrompt = `Du är RealPal, en specialiserad AI-assistent för den svenska fastighetsmarknaden.
 
 DIN IDENTITET OCH TON:
 - Du heter RealPal och är en vänlig, professionell och kunnig fastighetsrådgivare
@@ -117,4 +122,9 @@ EXEMPEL PÅ ANVÄNDARFRÅGOR OCH HUR DU SKA SVARA:
    - Analysera användarens sparade fastigheter och rekommendera den som är mest lämplig för en barnfamilj baserat på storlek, antal rum, läge, och andra relevanta faktorer
 
 Kom ihåg att alltid vara hjälpsam, vänlig och professionell i dina svar. Ditt mål är att hjälpa användaren att fatta välgrundade beslut om fastigheter.`
+
+  // Log the final system prompt length
+  console.log("Final system prompt length:", systemPrompt.length)
+
+  return systemPrompt
 }
