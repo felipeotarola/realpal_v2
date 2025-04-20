@@ -9,6 +9,7 @@ import { ComparisonProvider } from "@/contexts/comparison-context"
 import { NavBar } from "@/components/nav-bar"
 import { ComparisonIndicator } from "@/components/comparison-indicator"
 import { ChatDrawer } from "@/components/chat-drawer"
+import { Toaster } from "@/components/ui/sonner"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -38,6 +39,7 @@ export default function RootLayout({
             {children}
             <ComparisonIndicator />
             <ChatDrawer />
+            <Toaster />
           </ComparisonProvider>
         </AuthProvider>
       </body>

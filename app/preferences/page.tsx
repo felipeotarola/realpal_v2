@@ -5,6 +5,7 @@ import { ProtectedRoute } from "@/components/protected-route"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { PropertyRequirementsForm } from "@/components/property-requirements-form"
+import { LocationPreferencesForm } from "@/components/location-preferences-form"
 
 export default function PreferencesPage() {
   const { user } = useAuth()
@@ -42,13 +43,11 @@ export default function PreferencesPage() {
                 <CardHeader>
                   <CardTitle>Platsönskemål</CardTitle>
                   <CardDescription>
-                    Ange dina önskemål för plats och område. Denna funktion kommer snart.
+                    Ange dina önskemål för plats och område. Välj en adress eller plats på kartan.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="p-8 text-center text-gray-500">
-                    <p>Platsönskemål kommer snart!</p>
-                  </div>
+                  <LocationPreferencesForm />
                 </CardContent>
               </Card>
             </TabsContent>

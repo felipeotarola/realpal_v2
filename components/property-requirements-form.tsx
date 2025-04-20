@@ -16,7 +16,7 @@ import {
 import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
 import { Loader2 } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 
 // Define the importance levels
 const importanceLevels = [
@@ -29,7 +29,6 @@ const importanceLevels = [
 
 export function PropertyRequirementsForm() {
   const { user } = useAuth()
-  const { toast } = useToast()
   const [features, setFeatures] = useState<any[]>([])
   const [requirements, setRequirements] = useState<Record<string, { value: any; importance: number }>>({})
   const [loading, setLoading] = useState(true)
@@ -125,28 +124,22 @@ export function PropertyRequirementsForm() {
       const result = await saveUserPropertyRequirements(user.id, requirements)
 
       if (result.success) {
-        toast({
-          title: "Preferenser sparade!",
+        toast.success("Preferenser sparade!", {
           description: "Dina fastighetspreferenser har sparats.",
-          variant: "default",
           duration: 3000,
         })
       } else {
         setError(result.message)
-        toast({
-          title: "Kunde inte spara preferenser",
+        toast.error("Kunde inte spara preferenser", {
           description: result.message,
-          variant: "destructive",
           duration: 5000,
         })
       }
     } catch (err) {
       console.error("Error saving requirements:", err)
       setError("Det gick inte att spara dina preferenser. Försök igen senare.")
-      toast({
-        title: "Ett fel inträffade",
+      toast.error("Ett fel inträffade", {
         description: "Det gick inte att spara dina preferenser. Försök igen senare.",
-        variant: "destructive",
         duration: 5000,
       })
     } finally {
