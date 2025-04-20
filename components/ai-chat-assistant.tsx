@@ -34,6 +34,7 @@ export function AIChatAssistant({ propertyContext }: { propertyContext?: string 
         const { savedProperties, comparisons, preferences } = await fetchUserContext(user.id)
         const contextString = formatUserContextForPrompt(savedProperties, comparisons, preferences)
         setUserContextString(contextString)
+        console.log("Loaded user context with", savedProperties.length, "saved properties")
       } catch (error) {
         console.error("Failed to load user context:", error)
       } finally {
@@ -122,6 +123,18 @@ export function AIChatAssistant({ propertyContext }: { propertyContext?: string 
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
     }
+  }
+
+  const handlePropertyQuery = (query: string) => {
+    // Set input to the query
+    handleInputChange({ target: { value: query } } as React.ChangeEvent<HTMLInputElement>)
+
+    // Submit the form with the query
+    const event = new Event("submit", {
+      bubbles: true,
+      cancelable: true,
+    }) as unknown as React.FormEvent<HTMLFormElement>
+    handleSubmit(event)
   }
 
   // Helper function to format timestamps
@@ -292,6 +305,26 @@ export function AIChatAssistant({ propertyContext }: { propertyContext?: string 
                 {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send size={18} />}
               </Button>
             </form>
+            <div className="flex flex-wrap gap-2 mt-2 justify-center">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePropertyQuery("Visa mina sparade fastigheter")}
+                disabled={isLoading || isLoadingContext}
+                className="text-xs"
+              >
+                Visa sparade fastigheter
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePropertyQuery("Matchar någon fastighet mina preferenser?")}
+                disabled={isLoading || isLoadingContext}
+                className="text-xs"
+              >
+                Matchande fastigheter
+              </Button>
+            </div>
           </div>
         </div>
       </div>

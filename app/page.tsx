@@ -3,6 +3,7 @@
 import { CrawlerForm } from "@/components/crawler-form"
 import { useAuth } from "@/contexts/auth-context"
 import { Suspense } from "react"
+import { ChatDrawer } from "@/components/chat-drawer"
 
 // Create a client component that uses auth
 function HomeContent() {
@@ -19,6 +20,7 @@ function HomeContent() {
       <div className="max-w-3xl mx-auto">
         <CrawlerForm />
       </div>
+      <ChatDrawer />
     </main>
   )
 }

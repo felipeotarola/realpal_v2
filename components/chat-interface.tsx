@@ -1,69 +1,130 @@
 "use client"
 
 import type React from "react"
-import { useChat } from "@ai-sdk/react"
-import { useRef, useState, useEffect } from "react"
-import { Send, Bot, User, Loader2, ExternalLink, ImageIcon, X, FileIcon } from "lucide-react"
-import ReactMarkdown from "react-markdown"
-import remarkGfm from "remark-gfm"
-import rehypeExternalLinks from "rehype-external-links"
-import { CodeBlock } from "@/components/code-block"
-import Image from "next/image"
 
-// Helper function to format timestamps
-function formatMessageTime(date: Date | undefined): string {
-  if (!date) return "Just now"
+import { useChat } from "ai/react"
+import { useState, useRef, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Send, Loader2, Bot, User, X, FileIcon, ImageIcon } from "lucide-react"
+import { MarkdownRenderer } from "@/components/markdown-renderer"
+import { useAuth } from "@/contexts/auth-context"
+import { fetchUserContext, formatUserContextForPrompt } from "@/lib/user-context-fetcher"
+import { getAssistantSystemPrompt } from "@/lib/ai-assistant-prompt"
 
-  const now = new Date()
-  const diff = now.getTime() - date.getTime()
+interface ChatInterfaceProps {
+  initialSystemMessage?: string
+  initialWelcomeMessage?: string
+  propertyContext?: string
+}
 
-  // If less than a minute ago, show "Just now"
-  if (diff < 60000) {
-    return "Just now"
+export default function ChatInterface({
+  initialSystemMessage = "Du är en hjälpsam assistent.",
+  initialWelcomeMessage = "Hej! Hur kan jag hjälpa dig idag?",
+  propertyContext,
+}: ChatInterfaceProps) {
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const { user } = useAuth()
+  const [enabled, setEnabled] = useState(false)
+  const [userContextString, setUserContextString] = useState<string>("")
+  const [isLoadingContext, setIsLoadingContext] = useState(false)
+  const [messageTimes, setMessageTimes] = useState<Record<string, Date>>({})
+
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [files, setFiles] = useState<FileList | undefined>(undefined)
+  const [threadId, setThreadId] = useState<string | null>(null)
+
+  // Add a function to extract property IDs from messages for comparison
+  const extractPropertyIds = (text: string): string[] => {
+    // Look for patterns like "jämför fastighet 1 och 2" or "jämför fastigheter med ID 1, 2, 3"
+    const idPattern = /fastighet(?:er)?\s+(?:med\s+ID\s+)?(\d+)(?:\s*(?:,|och|&)\s*(\d+))+/i
+    const match = text.match(idPattern)
+
+    if (match) {
+      // Extract all numbers from the match
+      const allNumbers = text.match(/\d+/g)
+      return allNumbers || []
+    }
+
+    return []
   }
 
-  // If less than an hour ago, show minutes
-  if (diff < 3600000) {
-    const minutes = Math.floor(diff / 60000)
-    return `${minutes}m ago`
-  }
+  // Helper function to format message time
+  const formatMessageTime = (date?: Date): string => {
+    if (!date) return "Just nu"
 
-  // If today, show time
-  if (now.toDateString() === date.toDateString()) {
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-  }
+    const now = new Date()
+    const diff = now.getTime() - date.getTime()
 
-  // If this year, show month and day
-  if (now.getFullYear() === date.getFullYear()) {
+    // If less than a minute ago, show "Just now"
+    if (diff < 60000) {
+      return "Just nu"
+    }
+
+    // If less than an hour ago, show minutes
+    if (diff < 3600000) {
+      const minutes = Math.floor(diff / 60000)
+      return `${minutes}m sedan`
+    }
+
+    // If today, show time
+    if (now.toDateString() === date.toDateString()) {
+      return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    }
+
+    // Otherwise show date
     return date.toLocaleDateString([], { month: "short", day: "numeric" })
   }
 
-  // Otherwise show date
-  return date.toLocaleDateString([], { year: "numeric", month: "short", day: "numeric" })
-}
+  // Fetch user context when component loads or user changes
+  useEffect(() => {
+    async function loadUserContext() {
+      if (!user) return
 
-export default function ChatInterface() {
-  const [files, setFiles] = useState<FileList | undefined>(undefined)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const [messageTimes, setMessageTimes] = useState<Record<string, Date>>({})
+      setIsLoadingContext(true)
+      try {
+        const { savedProperties, comparisons, preferences, propertyAnalyses } = await fetchUserContext(user.id)
+        const contextString = formatUserContextForPrompt(savedProperties, comparisons, preferences, propertyAnalyses)
+        setUserContextString(contextString)
+        console.log("Loaded user context with", savedProperties.length, "saved properties")
+      } catch (error) {
+        console.error("Failed to load user context:", error)
+      } finally {
+        setIsLoadingContext(false)
+      }
+    }
+
+    loadUserContext()
+  }, [user])
+
+  useEffect(() => {
+    if (user) {
+      setEnabled(true)
+    } else {
+      setEnabled(false)
+    }
+  }, [user])
+
+  // Create the system message with both property context and user context
+  const systemMessage = getAssistantSystemPrompt(propertyContext, userContextString)
 
   const { messages, input, handleInputChange, handleSubmit, isLoading, error, data } = useChat({
-    id: "drawer-chat", // Use a unique ID for this chat instance
+    api: "/api/chat",
+    initialMessages: [
+      {
+        id: "welcome",
+        role: "assistant",
+        content: initialWelcomeMessage,
+      },
+    ],
+    body: {
+      systemMessage: systemMessage,
+    },
+    disabled: !enabled || isLoadingContext,
   })
 
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const [threadId, setThreadId] = useState<string | null>(null)
-
-  // Scroll to bottom when messages change
+  // Add timestamps for new messages
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" })
-    }
-  }, [messages])
-
-  // Add timestamps for new messages - separate effect to avoid infinite loop
-  useEffect(() => {
-    // Only update if there are messages without timestamps
     const hasNewMessages = messages.some((message) => !messageTimes[message.id])
 
     if (hasNewMessages) {
@@ -77,14 +138,14 @@ export default function ChatInterface() {
         return newTimes
       })
     }
-  }, [messages]) // Only depend on messages, not messageTimes
+  }, [messages, messageTimes])
 
-  // Store the threadId when we get it from the response
+  // Scroll to bottom when messages change
   useEffect(() => {
-    if (data?.threadId && !threadId) {
-      setThreadId(data.threadId)
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" })
     }
-  }, [data, threadId])
+  }, [messages])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -99,14 +160,26 @@ export default function ChatInterface() {
     }
   }
 
+  // Store the threadId when we get it from the response
+  useEffect(() => {
+    if (data?.threadId && !threadId) {
+      setThreadId(data.threadId)
+    }
+  }, [data, threadId])
+
   const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
-    // Don't proceed if already loading
-    if (isLoading) return
-
     // Don't proceed if no input and no files
     if (!input.trim() && (!files || files.length === 0)) return
+
+    // Add this to the handleFormSubmit function, right before the handleSubmit call
+    // This will help with property comparisons
+    const propertyIds = extractPropertyIds(input)
+    if (propertyIds.length > 1) {
+      console.log("Detected property comparison request for IDs:", propertyIds)
+      // You could add additional logic here to enhance property comparisons
+    }
 
     // Submit the chat with files if available
     handleSubmit(e, {
@@ -114,6 +187,7 @@ export default function ChatInterface() {
       options: {
         body: {
           threadId,
+          systemMessage: systemMessage, // Make sure to include the system message with each submission
         },
       },
     })
@@ -122,107 +196,59 @@ export default function ChatInterface() {
     clearFiles()
   }
 
+  const handlePropertyQuery = (query: string) => {
+    // Set input to the query
+    handleInputChange({ target: { value: query } } as React.ChangeEvent<HTMLInputElement>)
+
+    // Submit the form with the query
+    const event = new Event("submit", {
+      bubbles: true,
+      cancelable: true,
+    }) as unknown as React.FormEvent<HTMLFormElement>
+    handleSubmit(event)
+  }
+
   return (
-    <div className="flex flex-col h-full bg-background">
-      <div className="flex-1 overflow-y-auto p-4 space-y-8">
-        {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <div className="mb-6">
-              <div className="flex items-center justify-center w-16 h-16 rounded-full bg-secondary p-4">
-                <Bot className="h-6 w-6 text-secondary-foreground" />
-              </div>
-            </div>
-            <h2 className="text-2xl font-bold text-foreground mb-3">Welcome to the AI Chatbot</h2>
-            <p className="text-muted-foreground max-w-md mb-6">
-              Ask me anything! I can search the web and analyze images to provide you with information.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 items-center text-sm">
-              <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-secondary text-secondary-foreground">
-                <ImageIcon className="h-4 w-4" />
-                <p>Upload an image to analyze it</p>
-              </div>
-              <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-secondary text-secondary-foreground">
-                <ExternalLink className="h-4 w-4" />
-                <p>Ask about anything on the web</p>
-              </div>
-            </div>
-          </div>
-        ) : (
-          messages.map((message, index) => (
-            <div
-              key={message.id}
-              className={`flex ${message.role === "user" ? "justify-end" : "justify-start"} items-start`}
-              style={{
-                animationDelay: `${index * 0.1}s`,
-                opacity: 0,
-                animation: "fadeIn 0.3s ease-out forwards",
-              }}
-            >
-              {message.role === "assistant" && (
-                <div className="flex flex-col items-center mr-2">
-                  <div className="assistant-avatar">
-                    <Bot className="h-3.5 w-3.5 text-primary" />
-                  </div>
-                  <span className="text-xs font-medium text-primary mt-1">AI</span>
+    <div className="flex flex-col h-full">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {messages.map((message) => (
+          <div
+            key={message.id}
+            className={`flex ${message.role === "user" ? "justify-end" : "justify-start"} items-start`}
+          >
+            {message.role === "assistant" && (
+              <div className="flex flex-col items-center mr-2">
+                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100">
+                  <Bot className="h-4 w-4 text-blue-600" />
                 </div>
-              )}
+                <span className="text-xs font-medium text-blue-600 mt-1">AI</span>
+              </div>
+            )}
 
-              <div className="flex flex-col">
-                <div
-                  className={`chat-bubble ${message.role === "user" ? "chat-bubble-user" : "chat-bubble-assistant"}`}
-                >
-                  <div className={message.role === "user" ? "space-y-2" : ""}>
-                    {message.role === "user" ? (
-                      <p className="leading-relaxed tracking-wide">{message.content}</p>
-                    ) : (
-                      <div className="prose dark:prose-invert prose-sm max-w-none">
-                        <ReactMarkdown
-                          remarkPlugins={[remarkGfm]}
-                          rehypePlugins={[[rehypeExternalLinks, { target: "_blank", rel: ["noopener", "noreferrer"] }]]}
-                          components={{
-                            a: ({ node, ...props }) => (
-                              <a
-                                {...props}
-                                className="text-primary hover:underline break-words"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              />
-                            ),
-                            p: ({ node, ...props }) => <p {...props} className="mb-2 last:mb-0" />,
-                            ul: ({ node, ...props }) => <ul {...props} className="list-disc pl-4 mb-2" />,
-                            ol: ({ node, ...props }) => <ol {...props} className="list-decimal pl-4 mb-2" />,
-                            li: ({ node, ...props }) => <li {...props} className="mb-1" />,
-                            code: ({ node, inline, className, children, ...props }) => {
-                              const match = /language-(\w+)/.exec(className || "")
-                              return !inline && match ? (
-                                <CodeBlock language={match[1]} value={String(children).replace(/\n$/, "")} {...props} />
-                              ) : (
-                                <code {...props} className="bg-muted px-1 py-0.5 rounded text-sm">
-                                  {children}
-                                </code>
-                              )
-                            },
-                          }}
-                        >
-                          {message.content}
-                        </ReactMarkdown>
-                      </div>
-                    )}
+            <div className="flex flex-col">
+              <div
+                className={`max-w-[80%] rounded-lg p-3 ${
+                  message.role === "user" ? "bg-blue-500 text-white" : "bg-gray-100 text-gray-800"
+                }`}
+              >
+                {message.role === "user" ? (
+                  <div>
+                    <p className="leading-relaxed tracking-wide">{message.content}</p>
 
-                    {/* Attachments */}
+                    {/* Display attachments for user messages */}
                     {message.experimental_attachments && message.experimental_attachments.length > 0 && (
                       <div className="mt-3 space-y-2">
                         {message.experimental_attachments.map((attachment, idx) => (
                           <div key={idx}>
                             {attachment.contentType?.startsWith("image/") ? (
                               <div className="rounded-md overflow-hidden border mt-2 bg-white/20">
-                                <Image
-                                  src={attachment.url || "/placeholder.svg"}
-                                  width={300}
-                                  height={200}
-                                  alt={attachment.name || `Image ${idx + 1}`}
-                                  className="object-contain"
-                                />
+                                {attachment.url && (
+                                  <img
+                                    src={attachment.url || "/placeholder.svg"}
+                                    alt={attachment.name || `Image ${idx + 1}`}
+                                    className="max-w-full h-auto"
+                                  />
+                                )}
                               </div>
                             ) : (
                               <div className="flex items-center space-x-2 p-2 border rounded-md bg-white/20">
@@ -235,81 +261,60 @@ export default function ChatInterface() {
                       </div>
                     )}
                   </div>
-
-                  {/* Sources */}
-                  {message.role === "assistant" && data?.sources && data.sources.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-border/50">
-                      <p className="text-xs font-medium text-muted-foreground mb-2">Sources:</p>
-                      <div className="grid gap-2">
-                        {data.sources.map((source, index) => (
-                          <a
-                            key={index}
-                            href={source.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-start p-2 rounded-md bg-muted/50 hover:bg-muted transition-colors text-xs"
-                          >
-                            <ExternalLink className="h-3.5 w-3.5 mr-2 mt-0.5 flex-shrink-0 text-primary" />
-                            <div>
-                              <p className="font-medium hover:underline break-words">
-                                {source.title || new URL(source.url).hostname}
-                              </p>
-                              {source.title && (
-                                <p className="text-xs text-muted-foreground truncate mt-1">
-                                  {new URL(source.url).hostname}
-                                </p>
-                              )}
-                            </div>
-                          </a>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Timestamp */}
-                <div className={`message-timestamp ${message.role === "user" ? "text-right" : "text-left"}`}>
-                  {formatMessageTime(messageTimes[message.id])}
-                </div>
+                ) : (
+                  <MarkdownRenderer content={message.content} />
+                )}
               </div>
-
-              {message.role === "user" && (
-                <div className="flex flex-col items-center ml-2">
-                  <div className="user-avatar">
-                    <User className="h-3.5 w-3.5 text-black" />
-                  </div>
-                  <span className="text-xs font-medium text-blue-600 mt-1">You</span>
-                </div>
-              )}
+              <div className={`text-xs text-gray-500 mt-1 ${message.role === "user" ? "text-right" : "text-left"}`}>
+                {formatMessageTime(messageTimes[message.id])}
+              </div>
             </div>
-          ))
-        )}
+
+            {message.role === "user" && (
+              <div className="flex flex-col items-center ml-2">
+                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-500">
+                  <User className="h-4 w-4 text-white" />
+                </div>
+                <span className="text-xs font-medium text-blue-600 mt-1">Du</span>
+              </div>
+            )}
+          </div>
+        ))}
 
         {isLoading && (
           <div className="flex justify-start items-start">
             <div className="flex flex-col items-center mr-2">
-              <div className="assistant-avatar">
-                <Bot className="h-3.5 w-3.5 text-primary" />
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100">
+                <Bot className="h-4 w-4 text-blue-600" />
               </div>
-              <span className="text-xs font-medium text-primary mt-1">AI</span>
+              <span className="text-xs font-medium text-blue-600 mt-1">AI</span>
             </div>
             <div className="flex flex-col">
-              <div className="chat-bubble chat-bubble-assistant">
-                <div className="typing-indicator">
-                  <div className="typing-dot"></div>
-                  <div className="typing-dot"></div>
-                  <div className="typing-dot"></div>
+              <div className="max-w-[80%] rounded-lg p-3 bg-gray-100 text-gray-800">
+                <div className="flex space-x-2">
+                  <div
+                    className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"
+                    style={{ animationDelay: "0ms" }}
+                  ></div>
+                  <div
+                    className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"
+                    style={{ animationDelay: "300ms" }}
+                  ></div>
+                  <div
+                    className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"
+                    style={{ animationDelay: "600ms" }}
+                  ></div>
                 </div>
               </div>
-              <div className="message-timestamp text-left">Just now</div>
+              <div className="text-xs text-gray-500 mt-1">Just nu</div>
             </div>
           </div>
         )}
 
         {error && (
           <div className="flex justify-center">
-            <div className="bg-destructive/10 p-4 rounded-md text-destructive max-w-md">
-              <p className="font-medium">Error: {error.message || "Something went wrong"}</p>
+            <div className="max-w-[80%] rounded-lg p-3 bg-red-100 text-red-800">
+              Ett fel uppstod. Försök igen senare.
             </div>
           </div>
         )}
@@ -317,73 +322,99 @@ export default function ChatInterface() {
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="border-t p-4 bg-background">
-        <form onSubmit={handleFormSubmit} className="space-y-3 max-w-4xl mx-auto">
-          {/* File preview */}
-          {files && files.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {Array.from(files).map((file, index) => (
-                <div key={index} className="relative inline-block">
-                  <div className="rounded-md overflow-hidden border">
-                    {file.type.startsWith("image/") ? (
-                      <img
-                        src={URL.createObjectURL(file) || "/placeholder.svg"}
-                        alt={`File ${index + 1}`}
-                        className="max-h-32 object-contain"
-                      />
-                    ) : (
-                      <div className="flex items-center space-x-2 p-2 border rounded-md">
-                        <FileIcon className="h-5 w-5" />
-                        <span className="text-sm truncate max-w-[100px]">{file.name}</span>
-                      </div>
-                    )}
+      <form onSubmit={handleFormSubmit} className="p-4 border-t">
+        {/* File preview */}
+        {files && files.length > 0 && (
+          <div className="mb-2">
+            <div className="relative inline-block">
+              <div className="rounded-md overflow-hidden border">
+                {files[0].type.startsWith("image/") ? (
+                  <img
+                    src={URL.createObjectURL(files[0]) || "/placeholder.svg"}
+                    alt={`File preview`}
+                    className="max-h-32 object-contain"
+                  />
+                ) : (
+                  <div className="flex items-center space-x-2 p-2 border rounded-md">
+                    <FileIcon className="h-5 w-5" />
+                    <span className="text-sm truncate max-w-[100px]">{files[0].name}</span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={clearFiles}
-                    className="absolute -top-2 -right-2 bg-background text-foreground rounded-full p-1 shadow-sm hover:bg-muted border"
-                    aria-label="Remove files"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={clearFiles}
+                className="absolute -top-2 -right-2 bg-white text-gray-800 rounded-full p-1 shadow-sm hover:bg-gray-100 border"
+                aria-label="Ta bort fil"
+              >
+                <X className="h-3 w-3" />
+              </button>
             </div>
-          )}
-
-          <div className="flex space-x-2">
-            <input
-              type="text"
-              value={input}
-              onChange={handleInputChange}
-              placeholder={files && files.length > 0 ? "Ask about this file..." : "Ask me anything..."}
-              className="flex-1 p-3 rounded-md border bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
-            />
-
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="p-3 rounded-md border bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
-              aria-label="Upload file"
-              disabled={isLoading}
-            >
-              <ImageIcon className="h-5 w-5" />
-            </button>
-
-            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
-
-            <button
-              type="submit"
-              disabled={isLoading || (!input.trim() && (!files || files.length === 0))}
-              className="p-3 rounded-md bg-white text-black hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
-            </button>
           </div>
+        )}
 
-          <p className="text-xs text-muted-foreground text-center">Tip: Upload images to analyze them (max 4MB)</p>
-        </form>
-      </div>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="p-2 rounded-md border bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+            aria-label="Ladda upp bild"
+            disabled={isLoading || isLoadingContext}
+          >
+            <ImageIcon className="h-5 w-5" />
+          </button>
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            accept="image/*"
+            className="hidden"
+            disabled={isLoading || isLoadingContext}
+          />
+          <Input
+            value={input}
+            onChange={handleInputChange}
+            placeholder={files && files.length > 0 ? "Fråga om denna bild..." : "Skriv ett meddelande..."}
+            disabled={isLoading || isLoadingContext}
+            className="flex-1"
+          />
+          <Button type="submit" disabled={isLoading || isLoadingContext || (!input.trim() && !files?.length)}>
+            {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send size={18} />}
+          </Button>
+        </div>
+
+        {/* Add quick action buttons for property-related queries */}
+        <div className="flex flex-wrap gap-2 mt-2">
+          <button
+            type="button"
+            onClick={() => handlePropertyQuery("Visa mina sparade fastigheter")}
+            className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full hover:bg-blue-200 transition-colors"
+            disabled={isLoading || isLoadingContext}
+          >
+            Visa sparade fastigheter
+          </button>
+          <button
+            type="button"
+            onClick={() => handlePropertyQuery("Vilka är mina preferenser?")}
+            className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full hover:bg-blue-200 transition-colors"
+            disabled={isLoading || isLoadingContext}
+          >
+            Visa preferenser
+          </button>
+          <button
+            type="button"
+            onClick={() => handlePropertyQuery("Vilken fastighet passar mig bäst?")}
+            className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full hover:bg-blue-200 transition-colors"
+            disabled={isLoading || isLoadingContext}
+          >
+            Rekommendation
+          </button>
+        </div>
+
+        <p className="text-xs text-gray-500 text-center mt-2">Tips: Ladda upp bilder för att analysera dem (max 4MB)</p>
+      </form>
+
+      {isLoadingContext && <div className="text-xs text-center text-gray-500 pb-2">Laddar din information...</div>}
     </div>
   )
 }

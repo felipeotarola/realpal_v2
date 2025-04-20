@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { MessageSquare, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import ChatInterface from "./chat-interface"
+import { getAssistantSystemPrompt } from "@/lib/ai-assistant-prompt"
 
 export function SimpleChatDrawer() {
   const [isOpen, setIsOpen] = useState(false)
@@ -58,7 +59,10 @@ export function SimpleChatDrawer() {
                 </Button>
               </div>
               <div className="mt-4 flex-1 overflow-hidden">
-                <ChatInterface />
+                <ChatInterface
+                  initialSystemMessage={getAssistantSystemPrompt()}
+                  initialWelcomeMessage="Hej! Jag är RealPal, din fastighetsassistent. Hur kan jag hjälpa dig idag?"
+                />
               </div>
             </div>
           </div>

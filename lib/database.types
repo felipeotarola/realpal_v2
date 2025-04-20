@@ -1,0 +1,218 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export interface Database {
+  public: {
+    Tables: {
+      comparison_notes: {
+        Row: {
+          comparison_id: string
+          created_at: string
+          id: string
+          note_text: string
+          property_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          comparison_id: string
+          created_at?: string
+          id?: string
+          note_text: string
+          property_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          comparison_id?: string
+          created_at?: string
+          id?: string
+          note_text?: string
+          property_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      comparison_properties: {
+        Row: {
+          comparison_id: string
+          display_order: number
+          id: string
+          property_id: string
+        }
+        Insert: {
+          comparison_id: string
+          display_order: number
+          id?: string
+          property_id: string
+        }
+        Update: {
+          comparison_id?: string
+          display_order?: number
+          id?: string
+          property_id?: string
+        }
+        Relationships: []
+      }
+      property_analyses: {
+        Row: {
+          analysis_summary: string | null
+          attribute_scores: Json | null
+          cons: string[] | null
+          created_at: string
+          id: string
+          investment_rating: number | null
+          pros: string[] | null
+          property_id: string
+          total_score: number | null
+          updated_at: string
+          value_for_money: number | null
+        }
+        Insert: {
+          analysis_summary?: string | null
+          attribute_scores?: Json | null
+          cons?: string[] | null
+          created_at?: string
+          id?: string
+          investment_rating?: number | null
+          pros?: string[] | null
+          property_id: string
+          total_score?: number | null
+          updated_at?: string
+          value_for_money?: number | null
+        }
+        Update: {
+          analysis_summary?: string | null
+          attribute_scores?: Json | null
+          cons?: string[] | null
+          created_at?: string
+          id?: string
+          investment_rating?: number | null
+          pros?: string[] | null
+          property_id?: string
+          total_score?: number | null
+          updated_at?: string
+          value_for_money?: number | null
+        }
+        Relationships: []
+      }
+      property_comparisons: {
+        Row: {
+          ai_analysis: Json | null
+          created_at: string
+          description: string | null
+          id: string
+          is_shared: boolean | null
+          last_viewed_at: string | null
+          property_ids: string[]
+          share_code: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_analysis?: Json | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_shared?: boolean | null
+          last_viewed_at?: string | null
+          property_ids: string[]
+          share_code?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_analysis?: Json | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_shared?: boolean | null
+          last_viewed_at?: string | null
+          property_ids?: string[]
+          share_code?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      saved_properties: {
+        Row: {
+          agent: string | null
+          created_at: string
+          description: string | null
+          energy_rating: string | null
+          features: string[] | null
+          id: string
+          images: string[] | null
+          is_analyzed: boolean | null
+          location: string | null
+          monthly_fee: string | null
+          price: string | null
+          rooms: string | null
+          size: string | null
+          title: string | null
+          url: string | null
+          user_id: string | null
+          year_built: string | null
+        }
+        Insert: {
+          agent?: string | null
+          created_at?: string
+          description?: string | null
+          energy_rating?: string | null
+          features?: string[] | null
+          id?: string
+          images?: string[] | null
+          is_analyzed?: boolean | null
+          location?: string | null
+          monthly_fee?: string | null
+          price?: string | null
+          rooms?: string | null
+          size?: string | null
+          title?: string | null
+          url?: string | null
+          user_id?: string | null
+          year_built?: string | null
+        }
+        Update: {
+          agent?: string | null
+          created_at?: string
+          description?: string | null
+          energy_rating?: string | null
+          features?: string[] | null
+          id?: string
+          images?: string[] | null
+          is_analyzed?: boolean | null
+          location?: string | null
+          monthly_fee?: string | null
+          price?: string | null
+          rooms?: string | null
+          size?: string | null
+          title?: string | null
+          url?: string | null
+          user_id?: string | null
+          year_built?: string | null
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}

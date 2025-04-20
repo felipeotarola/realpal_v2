@@ -8,8 +8,6 @@ import { AuthProvider } from "@/contexts/auth-context"
 import { ComparisonProvider } from "@/contexts/comparison-context"
 import { NavBar } from "@/components/nav-bar"
 import { ComparisonIndicator } from "@/components/comparison-indicator"
-import { AIChatAssistant } from "@/components/ai-chat-assistant"
-import { SimpleChatDrawer } from "@/components/simple-chat-drawer";
 import { ChatDrawer } from "@/components/chat-drawer"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -39,8 +37,7 @@ export default function RootLayout({
             <NavBar />
             {children}
             <ComparisonIndicator />
-                  <ChatDrawer />
-
+            <ChatDrawer />
           </ComparisonProvider>
         </AuthProvider>
       </body>

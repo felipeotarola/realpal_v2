@@ -30,12 +30,13 @@ import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { DebugPanel } from "@/components/debug-panel"
 import { ComparisonButton } from "@/components/comparison-button"
-import { PropertyAssistant } from "@/components/property-assistant"
 import { BrokerInfoCard } from "@/components/broker-info-card"
 import { searchBrokerInfo } from "@/lib/tavily-search"
 import { DebugBrokerSearch } from "@/components/debug-broker-search"
 import { PreferenceMatchCard } from "@/components/preference-match-card"
 import { DebugPreferenceMatch } from "@/components/debug-preference-match"
+import { ChatDrawer } from "@/components/chat-drawer"
+import { getPropertyContext } from "@/lib/property-context-provider"
 
 interface AttributeScore {
   name: string
@@ -102,6 +103,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
   const [preferenceMatch, setPreferenceMatch] = useState<any>(null)
   const [debugInfo, setDebugInfo] = useState<string[]>([])
   const [isCalculatingMatch, setIsCalculatingMatch] = useState(false)
+  const [propertyContextString, setPropertyContextString] = useState<string | null>(null)
   const router = useRouter()
 
   // Helper function to add debug info
@@ -109,6 +111,24 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
     console.log(message)
     setDebugInfo((prev) => [...prev, message])
   }
+
+  // Fetch property context
+  useEffect(() => {
+    async function loadPropertyContext() {
+      if (!params.id) return
+
+      try {
+        const contextString = await getPropertyContext(params.id)
+        setPropertyContextString(contextString)
+        addDebugInfo("Property context loaded successfully")
+      } catch (error) {
+        console.error("Error loading property context:", error)
+        addDebugInfo("Error loading property context")
+      }
+    }
+
+    loadPropertyContext()
+  }, [params.id])
 
   // Fetch property data
   useEffect(() => {
@@ -754,6 +774,11 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
   const isAnalyzed = property.is_analyzed && analysis !== null
   const preferenceMatchData = preparePreferenceMatchData()
 
+  // Prepare property context for the AI assistant
+  const getPropertyContextString = async () => {
+    return await getPropertyContext(params.id)
+  }
+
   return (
     <ProtectedRoute>
       <div className="container mx-auto py-10 px-4">
@@ -1194,7 +1219,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
         )}
 
         {/* Property Assistant */}
-        <PropertyAssistant property={property} />
+        <ChatDrawer propertyContext={propertyContextString || undefined} />
       </div>
     </ProtectedRoute>
   )
