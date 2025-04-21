@@ -41,7 +41,7 @@ export const NavBar = () => {
     <nav className="bg-white shadow sticky top-0 z-50">
       <div className="container mx-auto py-3 px-4 flex items-center justify-between">
         <Link href="/" className="flex items-center font-bold text-gray-800">
-          <Image src="/RealPal-Logo.png" alt="RealPal Logo" width={120} height={30} className="mr-2" />
+          <Image src="https://c1hxfnulg8jbz3wb.public.blob.vercel-storage.com/RealPal-Logo-qMXpdNkF9fA1BnZW3O3rkQJfsdnX4X.png" alt="RealPal Logo" width={120} height={30} className="mr-2" />
           RealPal
         </Link>
 
