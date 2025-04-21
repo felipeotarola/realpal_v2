@@ -56,25 +56,21 @@ export function CrawlerForm() {
 
   return (
     <div className="space-y-8">
-      <Card className="shadow-md border-0">
+      <Card className="shadow-sm border-gray-100">
         <CardHeader className="pb-4">
-          <CardTitle className="text-2xl">Fastighetsanalys</CardTitle>
-          <CardDescription>Analysera och spara fastighetsannonser från webben</CardDescription>
+          <CardTitle className="text-xl">Lägg till fastighet</CardTitle>
+          <CardDescription>Klistra in en URL till en fastighetsannons för analys</CardDescription>
         </CardHeader>
         <CardContent>
           <Alert className="mb-6 bg-blue-50 border-blue-100 text-blue-800">
             <Search className="h-4 w-4" />
             <AlertDescription>
-              Klistra in en URL till en fastighetsannons från Hemnet, Booli eller andra fastighetswebbplatser för att
-              analysera och spara den.
+              Klistra in en URL från Hemnet, Booli eller andra fastighetswebbplatser för att analysera och spara den.
             </AlertDescription>
           </Alert>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="url" className="text-sm font-medium">
-                URL till fastighetsannons
-              </label>
               <div className="flex gap-2">
                 <Input
                   id="url"
@@ -96,7 +92,6 @@ export function CrawlerForm() {
                   )}
                 </Button>
               </div>
-              <p className="text-xs text-gray-500">Prova URL:er från Hemnet, Booli eller andra fastighetswebbplatser</p>
             </div>
           </form>
         </CardContent>

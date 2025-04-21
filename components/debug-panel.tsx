@@ -122,6 +122,50 @@ export function DebugPanel({ propertyId }: DebugPanelProps) {
     }
   }
 
+  const createLocationTable = async () => {
+    setIsLoading(true)
+    try {
+      const response = await fetch("/api/admin/create-location-table", {
+        method: "POST",
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || "Failed to create location table")
+      }
+
+      const result = await response.json()
+      setResult(JSON.stringify(result, null, 2))
+      alert("Location preferences table created successfully!")
+    } catch (error) {
+      console.error("Error creating location table:", error)
+      setResult(JSON.stringify({ error: error.message }, null, 2))
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const checkLocationTable = async () => {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetch("/api/debug/check-location-table")
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to check location table")
+      }
+
+      setDebugData(data)
+    } catch (err) {
+      console.error("Debug error:", err)
+      setError(err instanceof Error ? err.message : "An error occurred")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <>
       <Button
@@ -181,6 +225,19 @@ export function DebugPanel({ propertyId }: DebugPanelProps) {
                       )}
                     </Button>
                   )}
+                  <Button onClick={checkLocationTable} disabled={isLoading} size="sm">
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Checking...
+                      </>
+                    ) : (
+                      <>
+                        <Database className="h-4 w-4 mr-2" />
+                        Check Location Table
+                      </>
+                    )}
+                  </Button>
                 </div>
 
                 <div className="space-y-2 mt-4">
@@ -191,6 +248,9 @@ export function DebugPanel({ propertyId }: DebugPanelProps) {
                     </Button>
                     <Button onClick={updatePreferenceSchema} disabled={isLoading} size="sm" className="w-full">
                       Update Preference Schema
+                    </Button>
+                    <Button onClick={createLocationTable} disabled={isLoading} size="sm" className="w-full">
+                      Create Location Table
                     </Button>
                   </div>
                 </div>

@@ -37,6 +37,8 @@ import { PreferenceMatchCard } from "@/components/preference-match-card"
 import { DebugPreferenceMatch } from "@/components/debug-preference-match"
 import { ChatDrawer } from "@/components/chat-drawer"
 import { getPropertyContext } from "@/lib/property-context-provider"
+// Add the import for PropertyLocationMap
+import { PropertyLocationMap } from "@/components/property-location-map"
 
 interface AttributeScore {
   name: string
@@ -1171,6 +1173,11 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                 </CardContent>
               </Card>
             )}
+
+            {/* Location Map */}
+            <Card>
+              <PropertyLocationMap propertyId={property.id} propertyLocation={property.location} userId={user.id} />
+            </Card>
           </div>
         </div>
 

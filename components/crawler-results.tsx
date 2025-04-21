@@ -37,6 +37,7 @@ export function CrawlerResults({ results }: CrawlerResultsProps) {
 
   const isAIAnalysisOnly = results.metadata.method === "ai-analysis-only"
   const hasImages = results.images && results.images.length > 0
+  const images = results.images || []
 
   return (
     <div className="space-y-6">
@@ -102,7 +103,11 @@ export function CrawlerResults({ results }: CrawlerResultsProps) {
           <TabsTrigger value="content" className="min-w-[80px] text-xs sm:text-sm">
             Content
           </TabsTrigger>
-          <TabsTrigger value="images" disabled={!hasImages} className="min-w-[80px] text-xs sm:text-sm">
+          <TabsTrigger
+            value="images"
+            disabled={!hasImages}
+            className={`min-w-[80px] text-xs sm:text-sm ${hasImages && images.length > 10 ? "font-semibold" : ""}`}
+          >
             Images {hasImages && `(${results.images?.length})`}
           </TabsTrigger>
           <TabsTrigger value="analysis" className="min-w-[80px] text-xs sm:text-sm">
@@ -168,7 +173,14 @@ export function CrawlerResults({ results }: CrawlerResultsProps) {
             </CardHeader>
             <CardContent>
               {hasImages ? (
-                <ImageGallery images={results.images || []} websiteUrl={results.url} />
+                <div>
+                  <ImageGallery images={results.images || []} websiteUrl={results.url} />
+                  {results.images && results.images.length > 10 && (
+                    <p className="text-sm text-muted-foreground mt-4 text-center">
+                      Showing all {results.images.length} images from this property
+                    </p>
+                  )}
+                </div>
               ) : (
                 <div className="flex flex-col items-center justify-center p-8 bg-gray-50 rounded-md">
                   <ImageIcon className="h-12 w-12 text-gray-400 mb-4" />

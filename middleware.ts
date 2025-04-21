@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 
 export async function middleware(request: NextRequest) {
   // Create a response object that we'll use to handle the request
@@ -8,7 +8,7 @@ export async function middleware(request: NextRequest) {
 
   try {
     // Create a Supabase client without directly accessing cookies
-    const supabase = createServerClient(
+    const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {

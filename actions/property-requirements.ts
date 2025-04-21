@@ -8,7 +8,7 @@ import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
 export interface PropertyFeature {
   id: string
   label: string
-  type: "number" | "boolean" | "select"
+  type: "number" | "boolean" | "select" | "location"
   options?: string[]
   min_value?: number
   max_value?: number
@@ -18,6 +18,9 @@ export interface PropertyRequirement {
   feature_id: string
   value: any
   importance: number
+  locationAddress?: string
+  locationLatitude?: number
+  locationLongitude?: number
 }
 
 // Fetch all property features
@@ -33,7 +36,7 @@ export async function getPropertyFeatures(): Promise<PropertyFeature[]> {
   return data.map((feature) => ({
     id: feature.id,
     label: feature.label,
-    type: feature.type as "number" | "boolean" | "select",
+    type: feature.type as "number" | "boolean" | "select" | "location",
     options: feature.options,
     min_value: feature.min_value,
     max_value: feature.max_value,
@@ -43,7 +46,12 @@ export async function getPropertyFeatures(): Promise<PropertyFeature[]> {
 // Fetch user's property requirements
 export async function getUserPropertyRequirements(
   userId: string,
-): Promise<Record<string, { value: any; importance: number }>> {
+): Promise<
+  Record<
+    string,
+    { value: any; importance: number; locationAddress?: string; locationLatitude?: number; locationLongitude?: number }
+  >
+> {
   // Create a Supabase client with the user's session
   const cookieStore = cookies()
   const supabaseClient = createServerComponentClient({ cookies: () => cookieStore })
@@ -58,7 +66,10 @@ export async function getUserPropertyRequirements(
   console.log("Raw user requirements from DB:", data)
 
   // Transform the data to match our component's state structure
-  const requirements: Record<string, { value: any; importance: number }> = {}
+  const requirements: Record<
+    string,
+    { value: any; importance: number; locationAddress?: string; locationLatitude?: number; locationLongitude?: number }
+  > = {}
   data.forEach((req) => {
     // Extract the actual value from the JSONB structure
     let extractedValue = req.value
@@ -74,6 +85,9 @@ export async function getUserPropertyRequirements(
     requirements[req.feature_id] = {
       value: extractedValue,
       importance: req.importance,
+      locationAddress: req.location_address,
+      locationLatitude: req.location_latitude,
+      locationLongitude: req.location_longitude,
     }
   })
 
@@ -85,7 +99,10 @@ export async function getUserPropertyRequirements(
 // Save user's property requirements
 export async function saveUserPropertyRequirements(
   userId: string,
-  requirements: Record<string, { value: any; importance: number }>,
+  requirements: Record<
+    string,
+    { value: any; importance: number; locationAddress?: string; locationLatitude?: number; locationLongitude?: number }
+  >,
 ): Promise<{ success: boolean; message: string }> {
   try {
     // Create a Supabase client with the user's session
@@ -93,22 +110,27 @@ export async function saveUserPropertyRequirements(
     const supabaseClient = createServerComponentClient({ cookies: () => cookieStore })
 
     // Convert requirements object to array of objects for upsert
-    const requirementsArray = Object.entries(requirements).map(([feature_id, { value, importance }]) => {
-      // Ensure value is properly formatted for JSONB
-      let formattedValue = value
+    const requirementsArray = Object.entries(requirements).map(
+      ([feature_id, { value, importance, locationAddress, locationLatitude, locationLongitude }]) => {
+        // Ensure value is properly formatted for JSONB
+        let formattedValue = value
 
-      // If value is a primitive type, wrap it in an object for JSONB
-      if (typeof value === "boolean" || typeof value === "number" || typeof value === "string") {
-        formattedValue = { value }
-      }
+        // If value is a primitive type, wrap it in an object for JSONB
+        if (typeof value === "boolean" || typeof value === "number" || typeof value === "string") {
+          formattedValue = { value }
+        }
 
-      return {
-        user_id: userId,
-        feature_id,
-        value: formattedValue,
-        importance,
-      }
-    })
+        return {
+          user_id: userId,
+          feature_id,
+          value: formattedValue,
+          importance,
+          location_address: locationAddress,
+          location_latitude: locationLatitude,
+          location_longitude: locationLongitude,
+        }
+      },
+    )
 
     console.log("Saving requirements:", requirementsArray)
 

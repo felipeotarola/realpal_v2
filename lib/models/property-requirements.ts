@@ -6,12 +6,15 @@ export interface PropertyRequirement {
   importance: number
   createdAt: string
   updatedAt: string
+  locationAddress?: string // Add location address
+  locationLatitude?: number // Add location latitude
+  locationLongitude?: number // Add location longitude
 }
 
 export interface PropertyFeature {
   id: string
   label: string
-  type: "number" | "boolean" | "select"
+  type: "number" | "boolean" | "select" | "location" // Add location type
   options?: string[]
   min?: number
   max?: number
@@ -65,6 +68,15 @@ export function calculateMatchScore(
       return
     } else if (feature.type === "select") {
       matched = propertyValue === req.value
+    } else if (feature.type === "location") {
+      // Implement location matching logic here
+      // This could involve calculating the distance between the property's location and the user's preferred location
+      // and giving a score based on the distance
+      // For simplicity, we'll just consider it a match if the property is in the same city
+      // This will require you to have city information for both the property and the user's preference
+      // You'll also need to implement the logic to fetch the city information
+      // For now, we'll just set matched to false
+      matched = false
     }
 
     if (matched) {

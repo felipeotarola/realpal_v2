@@ -1,10 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Card } from "@/components/ui/card"
-import { ChevronLeft, ChevronRight, ZoomIn } from "lucide-react"
+import { ChevronLeft, ChevronRight, ZoomIn, Download, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
 
 interface ImageGalleryProps {
   images: string[]
@@ -12,117 +11,141 @@ interface ImageGalleryProps {
 }
 
 export function ImageGallery({ images, websiteUrl }: ImageGalleryProps) {
-  const [selectedImage, setSelectedImage] = useState<string | null>(null)
-  const [selectedIndex, setSelectedIndex] = useState<number>(0)
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [openLightbox, setOpenLightbox] = useState(false)
+  const [currentPage, setCurrentPage] = useState(0)
 
-  if (images.length === 0) {
-    return (
-      <div className="p-4 bg-gray-50 rounded-lg text-gray-500 text-center">
-        Inga bilder hittades för denna fastighet.
-      </div>
-    )
+  const imagesPerPage = 12
+  const totalPages = Math.ceil(images.length / imagesPerPage)
+
+  const paginatedImages = images.slice(currentPage * imagesPerPage, (currentPage + 1) * imagesPerPage)
+
+  const nextPage = () => {
+    setCurrentPage((prev) => (prev + 1) % totalPages)
   }
 
-  const handleImageClick = (image: string, index: number) => {
-    setSelectedImage(image)
-    setSelectedIndex(index)
+  const prevPage = () => {
+    setCurrentPage((prev) => (prev - 1 + totalPages) % totalPages)
   }
 
-  const handleNext = () => {
-    if (selectedIndex < images.length - 1) {
-      setSelectedIndex(selectedIndex + 1)
-      setSelectedImage(images[selectedIndex + 1])
-    }
+  const openImage = (index: number) => {
+    setCurrentImageIndex(index + currentPage * imagesPerPage)
+    setOpenLightbox(true)
   }
 
-  const handlePrevious = () => {
-    if (selectedIndex > 0) {
-      setSelectedIndex(selectedIndex - 1)
-      setSelectedImage(images[selectedIndex - 1])
-    }
+  const nextImage = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % images.length)
+  }
+
+  const prevImage = () => {
+    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length)
+  }
+
+  const downloadImage = (url: string) => {
+    const link = document.createElement("a")
+    link.href = url
+    link.download = url.split("/").pop() || "image"
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
   }
 
   return (
-    <>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-        {images.map((image, index) => (
-          <Card
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+        {paginatedImages.map((image, index) => (
+          <div
             key={index}
-            className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow border-0 shadow-sm rounded-md"
-            onClick={() => handleImageClick(image, index)}
+            className="relative aspect-square overflow-hidden rounded-md border cursor-pointer group"
+            onClick={() => openImage(index)}
           >
-            <div className="relative aspect-square bg-gray-100">
-              <img
-                src={image || "/placeholder.svg"}
-                alt={`Fastighetsbild ${index + 1}`}
-                className="object-cover w-full h-full"
-                onError={(e) => {
-                  // Replace broken images with a placeholder
-                  ;(e.target as HTMLImageElement).src = `/placeholder.svg?height=200&width=200&query=property`
-                  ;(e.target as HTMLImageElement).className = "object-contain p-4"
-                }}
-              />
-              <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 bg-black/30 transition-opacity">
-                <ZoomIn className="text-white h-6 w-6" />
-              </div>
+            <img
+              src={image || "/placeholder.svg"}
+              alt={`Property image ${index + 1}`}
+              className="object-cover w-full h-full transition-transform group-hover:scale-105"
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+              <ZoomIn className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
-          </Card>
+          </div>
         ))}
       </div>
 
-      <Dialog open={!!selectedImage} onOpenChange={(open) => !open && setSelectedImage(null)}>
-        <DialogContent className="max-w-5xl w-[95vw] p-0 border-0 overflow-hidden">
-          <DialogHeader className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/70 to-transparent p-4 text-white">
-            <DialogTitle>
-              Fastighetsbild {selectedIndex + 1} av {images.length}
-            </DialogTitle>
-            <DialogDescription className="text-gray-200">
-              <a
-                href={selectedImage || "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-300 hover:underline"
-              >
-                Öppna originalbild
-              </a>
-            </DialogDescription>
-          </DialogHeader>
-          <div className="relative w-full h-[80vh] bg-black overflow-hidden">
-            {selectedImage && (
-              <img
-                src={selectedImage || "/placeholder.svg"}
-                alt={`Fastighetsbild ${selectedIndex + 1}`}
-                className="object-contain w-full h-full"
-                onError={(e) => {
-                  // Replace broken images with a placeholder
-                  ;(e.target as HTMLImageElement).src = `/placeholder.svg?height=600&width=800&query=property`
-                }}
-              />
-            )}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-4">
+          <Button variant="outline" size="sm" onClick={prevPage} disabled={currentPage === 0}>
+            <ChevronLeft className="h-4 w-4 mr-1" /> Previous
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            Page {currentPage + 1} of {totalPages}
+          </span>
+          <Button variant="outline" size="sm" onClick={nextPage} disabled={currentPage === totalPages - 1}>
+            Next <ChevronRight className="h-4 w-4 ml-1" />
+          </Button>
+        </div>
+      )}
 
-            <div className="absolute inset-x-0 bottom-0 flex justify-between p-4">
+      <Dialog open={openLightbox} onOpenChange={setOpenLightbox}>
+        <DialogContent className="max-w-4xl p-0 bg-black/90 border-0">
+          <div className="relative h-[80vh] flex items-center justify-center">
+            <img
+              src={images[currentImageIndex] || "/placeholder.svg"}
+              alt={`Property image ${currentImageIndex + 1}`}
+              className="max-h-full max-w-full object-contain"
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute left-2 text-white hover:bg-black/50"
+              onClick={(e) => {
+                e.stopPropagation()
+                prevImage()
+              }}
+            >
+              <ChevronLeft className="h-8 w-8" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-2 text-white hover:bg-black/50"
+              onClick={(e) => {
+                e.stopPropagation()
+                nextImage()
+              }}
+            >
+              <ChevronRight className="h-8 w-8" />
+            </Button>
+            <div className="absolute bottom-4 right-4 flex gap-2">
               <Button
                 variant="outline"
                 size="icon"
-                onClick={handlePrevious}
-                disabled={selectedIndex === 0}
-                className="bg-white/80 hover:bg-white rounded-full h-12 w-12"
+                className="bg-black/50 text-white border-white/20 hover:bg-black/70"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  downloadImage(images[currentImageIndex])
+                }}
               >
-                <ChevronLeft className="h-6 w-6" />
+                <Download className="h-4 w-4" />
               </Button>
               <Button
                 variant="outline"
                 size="icon"
-                onClick={handleNext}
-                disabled={selectedIndex === images.length - 1}
-                className="bg-white/80 hover:bg-white rounded-full h-12 w-12"
+                className="bg-black/50 text-white border-white/20 hover:bg-black/70"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  window.open(images[currentImageIndex], "_blank")
+                }}
               >
-                <ChevronRight className="h-6 w-6" />
+                <ExternalLink className="h-4 w-4" />
               </Button>
+            </div>
+            <div className="absolute bottom-4 left-0 right-0 text-center text-white/70 text-sm">
+              Image {currentImageIndex + 1} of {images.length}
             </div>
           </div>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   )
 }

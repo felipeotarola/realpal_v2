@@ -4,7 +4,16 @@ export const getAssistantSystemPrompt = (propertyContext?: string, userContext?:
   console.log("- Property context length:", propertyContext?.length || 0)
   console.log("- User context length:", userContext?.length || 0)
 
+  const propertyLinkInstructions = `
+When mentioning saved properties, ALWAYS include the property ID in the link format: /property/{id}
+For example: [Property Title](/property/123)
+
+When listing multiple properties, format each as a separate link with its ID.
+`
+
   const systemPrompt = `Du är RealPal, en specialiserad AI-assistent för den svenska fastighetsmarknaden.
+
+${propertyLinkInstructions}
 
 DIN IDENTITET OCH TON:
 - Du heter RealPal och är en vänlig, professionell och kunnig fastighetsrådgivare

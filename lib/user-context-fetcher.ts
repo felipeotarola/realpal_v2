@@ -170,40 +170,26 @@ export async function fetchUserContext(userId: string) {
 
 // Formatera användarkontext till en sträng för AI-prompten
 export function formatUserContextForPrompt(
-  savedProperties: SavedPropertyContext[],
-  comparisons: ComparisonContext[],
-  preferences: UserPreference[],
-  propertyAnalyses: PropertyAnalysis[] = [],
+  savedProperties: any[],
+  comparisons: any[],
+  preferences: any[],
+  propertyAnalyses: any[] = [],
 ): string {
-  let contextString = ""
+  let context = ""
 
-  if (savedProperties.length > 0) {
-    contextString += "ANVÄNDARENS SPARADE FASTIGHETER:\n"
-    savedProperties.forEach((property, index) => {
-      contextString += `${index + 1}. ID: ${property.id} - ${property.title} - ${property.price} - ${property.location} - ${property.size} - ${property.rooms} rum\n`
-      if (property.monthly_fee) contextString += `   Månadsavgift: ${property.monthly_fee}\n`
-      if (property.year_built) contextString += `   Byggår: ${property.year_built}\n`
-      if (property.energy_rating) contextString += `   Energiklass: ${property.energy_rating}\n`
-      if (property.features && property.features.length > 0) {
-        contextString += `   Egenskaper: ${property.features.join(", ")}\n`
-      }
-      // Add URL to property
-      if (property.url) contextString += `   URL: ${property.url}\n`
-
-      // Add analysis information if available
-      const analysis = propertyAnalyses.find((a) => a.property_id === property.id)
-      if (analysis) {
-        contextString += `   Analys: Totalpoäng ${analysis.total_score}/10, Investeringsbetyg: ${analysis.investment_rating}/10, Prisvärdhet: ${analysis.value_for_money}/10\n`
-        if (analysis.pros && analysis.pros.length > 0) {
-          contextString += `   Fördelar: ${analysis.pros.join(", ")}\n`
-        }
-        if (analysis.cons && analysis.cons.length > 0) {
-          contextString += `   Nackdelar: ${analysis.cons.join(", ")}\n`
-        }
-      }
+  // Format saved properties with emphasis on IDs for linking
+  if (savedProperties && savedProperties.length > 0) {
+    context += "## Saved Properties\n\n"
+    savedProperties.forEach((property) => {
+      context += `- ID: ${property.id} | Title: ${property.title || "Unknown"} | Location: ${
+        property.location || "Unknown"
+      } | Price: ${property.price || "Unknown"}\n`
     })
-    contextString += "\n"
+    context +=
+      "\nWhen referring to these properties in your responses, always use the format [Property Title](/property/ID) to create clickable links.\n\n"
   }
+
+  let contextString = ""
 
   if (comparisons.length > 0) {
     contextString += "ANVÄNDARENS SPARADE JÄMFÖRELSER:\n"
@@ -254,7 +240,7 @@ export function formatUserContextForPrompt(
     }
   }
 
-  return contextString
+  return context + contextString
 }
 
 // Hjälpfunktion för att formatera preferensvärden
