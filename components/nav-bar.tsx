@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
-import { Menu, X, Home, BookmarkIcon, BarChart2, Settings, User } from "lucide-react"
+import { Menu, X, Home, BookmarkIcon, BarChart2, Settings, User, LayoutDashboard, BarChart } from "lucide-react"
 
 export const NavBar = () => {
   const { user, signOut } = useAuth()
@@ -45,11 +45,14 @@ export const NavBar = () => {
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center space-x-4">
-          <Link href="/" className="text-gray-600 hover:text-gray-800">
-            Hem
-          </Link>
           {user ? (
             <>
+              <Link href="/" className="text-gray-600 hover:text-gray-800">
+                Hem
+              </Link>
+              <Link href="/dashboard" className="text-gray-600 hover:text-gray-800">
+                Dashboard
+              </Link>
               <Link href="/saved" className="text-gray-600 hover:text-gray-800">
                 Sparade
               </Link>
@@ -58,6 +61,9 @@ export const NavBar = () => {
               </Link>
               <Link href="/preferences" className="text-gray-600 hover:text-gray-800">
                 Preferenser
+              </Link>
+              <Link href="/statistics" className="text-gray-600 hover:text-gray-800">
+                Statistik
               </Link>
               <Link href="/profile" className="text-gray-600 hover:text-gray-800">
                 Profil
@@ -124,9 +130,16 @@ export const NavBar = () => {
                 <Home className="h-4 w-4" />
                 Hem
               </Link>
-
               {user ? (
                 <>
+                  <Link
+                    href="/dashboard"
+                    className="flex items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-gray-100"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <LayoutDashboard className="h-4 w-4" />
+                    Dashboard
+                  </Link>
                   <Link
                     href="/saved"
                     className="flex items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-gray-100"
@@ -150,6 +163,14 @@ export const NavBar = () => {
                   >
                     <Settings className="h-4 w-4" />
                     Preferenser
+                  </Link>
+                  <Link
+                    href="/statistics"
+                    className="flex items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-gray-100"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <BarChart className="h-4 w-4" />
+                    Statistik
                   </Link>
                   <Link
                     href="/profile"

@@ -229,9 +229,41 @@ export default function ChatInterface({
     })
   }
 
+  // Add a style tag for the property cards
+  const chatStyles = `
+  .property-chat-container .chat-message a {
+    text-decoration: none;
+  }
+  
+  .property-chat-container .chat-message a:hover {
+    text-decoration: none;
+  }
+  
+  .property-chat-container .chat-message a > div {
+    transition: all 0.2s ease;
+  }
+  
+  .property-chat-container .chat-message a:hover > div {
+    background-color: rgba(59, 130, 246, 0.05);
+  }
+`
+
+  // Add the style tag to the component
+  useEffect(() => {
+    // Add the style tag to the document head
+    const styleElement = document.createElement("style")
+    styleElement.innerHTML = chatStyles
+    document.head.appendChild(styleElement)
+
+    // Clean up on unmount
+    return () => {
+      document.head.removeChild(styleElement)
+    }
+  }, [])
+
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto p-2 sm:p-3 space-y-3">
+      <div className="flex-1 overflow-y-auto p-2 sm:p-3 space-y-3 property-chat-container">
         {messages.map((message) => (
           <div
             key={message.id}

@@ -64,10 +64,10 @@
     "@ai-sdk/openai": "latest",
     "fs": "latest",
     "path": "latest",
+    "@react-google-maps/api": "latest",
     "react-markdown": "latest",
     "remark-gfm": "latest",
-    "rehype-external-links": "latest",
-    "@react-google-maps/api": "latest"
+    "rehype-external-links": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",
