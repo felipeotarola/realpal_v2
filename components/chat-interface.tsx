@@ -460,12 +460,12 @@ export default function ChatInterface({
           />
           <Input
             ref={inputRef}
-
+            autoFocus={true}
             value={input}
             onChange={handleInputChange}
             placeholder={files && files.length > 0 ? "Fråga om denna bild..." : "Skriv ett meddelande..."}
             disabled={isLoading || isLoadingContext}
-            className="flex-1 h-9 text-sm"
+            className="flex-1 h-9 text-base"
           />
           <Button
             type="submit"
