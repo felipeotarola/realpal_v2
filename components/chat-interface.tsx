@@ -465,7 +465,7 @@ export default function ChatInterface({
             onChange={handleInputChange}
             placeholder={files && files.length > 0 ? "Fråga om denna bild..." : "Skriv ett meddelande..."}
             disabled={isLoading || isLoadingContext}
-            className="flex-1 h-9 text-base"
+            className="flex-1 h-9 text-sm"
           />
           <Button
             type="submit"
