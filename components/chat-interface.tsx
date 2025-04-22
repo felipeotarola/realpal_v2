@@ -280,50 +280,10 @@ export default function ChatInterface({
     }
   }, [])
 
-  // Add a style tag for the property cards
-  const chatStyles = `
-  .property-chat-container .chat-message a {
-    text-decoration: none;
-  }
-  
-  .property-chat-container .chat-message a:hover {
-    text-decoration: none;
-  }
-  
-  .property-chat-container .chat-message a > div {
-    transition: all 0.2s ease;
-  }
-  
-  .property-chat-container .chat-message a:hover > div {
-    background-color: rgba(59, 130, 246, 0.05);
-  }
-  
-  /* Mobile viewport fix */
-  .chat-container {
-    height: 100vh;
-    height: calc(var(--vh, 1vh) * 100);
-  }
-`
-
-  // Add the style tag to the component
-  useEffect(() => {
-    // Add the style tag to the document head
-    const styleElement = document.createElement("style")
-    styleElement.innerHTML = chatStyles
-    document.head.appendChild(styleElement)
-
-    // Clean up on unmount
-    return () => {
-      document.head.removeChild(styleElement)
-    }
-  }, [])
 
   return (
     <div className="flex flex-col h-full">
-      <div
-        className="flex-1 overflow-y-auto p-2 sm:p-3 space-y-3 property-chat-container"
-        style={{ maxHeight: "calc(100vh - 180px)" }}
-      >
+          <div className="flex-1 overflow-y-auto p-2 sm:p-3 space-y-3 property-chat-container">
         {globalMessages.map((message) => (
           <div
             key={message.id}
@@ -439,8 +399,8 @@ export default function ChatInterface({
         <div ref={messagesEndRef} />
       </div>
 
-      <form onSubmit={handleFormSubmit} className="p-2 sm:p-3 border-t sticky bottom-0 bg-white z-10">
-        {/* File preview */}
+ <form onSubmit={handleFormSubmit} className="p-2 sm:p-3 border-t bg-white z-10">
+      {/* File preview */}
         {files && files.length > 0 && (
           <div className="mb-1.5 sm:mb-2">
             <div className="relative inline-block">
