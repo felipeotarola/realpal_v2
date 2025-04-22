@@ -179,6 +179,15 @@ export default function ChatInterface({
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" })
     }
   }, [globalMessages])
+  useEffect(() => {
+    // every time messages list changes *and* we're not streaming
+    if (!isLoading) {
+      // give React/Markdown a tick to finish mounting
+      setTimeout(() => {
+        inputRef.current?.focus()
+      }, 50)
+    }
+  }, [globalMessages.length, isLoading])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -452,7 +461,6 @@ export default function ChatInterface({
           <Input
             ref={inputRef}
 
-            autoFocus={true}
             value={input}
             onChange={handleInputChange}
             placeholder={files && files.length > 0 ? "Fråga om denna bild..." : "Skriv ett meddelande..."}
