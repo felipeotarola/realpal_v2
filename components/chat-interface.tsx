@@ -54,7 +54,7 @@ export default function ChatInterface({
   }
 
   // Helper function to format message time
-  const formatMessageTime = (date: Date | undefined): string => {
+  const formatMessageTime = (date?: Date): string => {
     if (!date) return "Just nu"
 
     const now = new Date()
@@ -229,6 +229,28 @@ export default function ChatInterface({
     })
   }
 
+  // Add this new useEffect to handle mobile viewport adjustments
+  useEffect(() => {
+    // Function to handle viewport height for mobile keyboards
+    const handleResize = () => {
+      // Set a custom property for the visible viewport height
+      document.documentElement.style.setProperty("--vh", `${window.innerHeight * 0.01}px`)
+    }
+
+    // Initial call
+    handleResize()
+
+    // Add event listener
+    window.addEventListener("resize", handleResize)
+    window.addEventListener("orientationchange", handleResize)
+
+    // Cleanup
+    return () => {
+      window.removeEventListener("resize", handleResize)
+      window.removeEventListener("orientationchange", handleResize)
+    }
+  }, [])
+
   // Add a style tag for the property cards
   const chatStyles = `
   .property-chat-container .chat-message a {
@@ -245,6 +267,12 @@ export default function ChatInterface({
   
   .property-chat-container .chat-message a:hover > div {
     background-color: rgba(59, 130, 246, 0.05);
+  }
+  
+  /* Mobile viewport fix */
+  .chat-container {
+    height: 100vh;
+    height: calc(var(--vh, 1vh) * 100);
   }
 `
 
@@ -263,7 +291,10 @@ export default function ChatInterface({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto p-2 sm:p-3 space-y-3 property-chat-container">
+      <div
+        className="flex-1 overflow-y-auto p-2 sm:p-3 space-y-3 property-chat-container"
+        style={{ maxHeight: "calc(100vh - 180px)" }}
+      >
         {messages.map((message) => (
           <div
             key={message.id}
@@ -306,7 +337,7 @@ export default function ChatInterface({
                             ) : (
                               <div className="flex items-center space-x-1.5 p-1.5 border rounded-md bg-white/20">
                                 <FileIcon className="h-3.5 w-3.5 text-white" />
-                                <span className="text-xs truncate max-w-[80px] sm:max-w-[100px]">{attachment.name || `File ${idx + 1}`}</span>
+                                <span className="text-xs">{attachment.name || `File ${idx + 1}`}</span>
                               </div>
                             )}
                           </div>
@@ -379,7 +410,7 @@ export default function ChatInterface({
         <div ref={messagesEndRef} />
       </div>
 
-      <form onSubmit={handleFormSubmit} className="p-2 sm:p-3 border-t">
+      <form onSubmit={handleFormSubmit} className="p-2 sm:p-3 border-t sticky bottom-0 bg-white z-10">
         {/* File preview */}
         {files && files.length > 0 && (
           <div className="mb-1.5 sm:mb-2">
