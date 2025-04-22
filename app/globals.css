@@ -122,3 +122,39 @@ body {
     -webkit-overflow-scrolling: touch;
   }
 }
+
+/* Mobile keyboard fixes */
+@media (max-width: 640px) {
+  /* Prevent content from being pushed off-screen by keyboard */
+  .chat-container {
+    height: 100%;
+    max-height: 100%;
+    position: relative;
+  }
+
+  /* Ensure input stays visible when keyboard appears */
+  .chat-input-container {
+    position: fixed; /* Changed from sticky to fixed */
+    bottom: 0;
+    left: 0; /* Ensure it stretches to the left edge */
+    right: 0; /* Ensure it stretches to the right edge */
+    background-color: white;
+    z-index: 10;
+  }
+
+  /* Adjust viewport for iOS devices */
+  @supports (-webkit-touch-callout: none) {
+    .chat-container {
+      height: -webkit-fill-available;
+    }
+  }
+
+  /* Fix for iOS Safari 100vh issue */
+  .h-screen,
+  .min-h-screen,
+  .h-\[60vh\],
+  .h-\[75\%\] {
+    height: 100vh;
+    height: -webkit-fill-available;
+  }
+}
