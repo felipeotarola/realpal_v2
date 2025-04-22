@@ -17,3 +17,11 @@
     word-break: break-word;
   }
 }
+
+/* Ensure input is visible above keyboard on mobile */
+@media (max-width: 768px) {
+  .chat-interface > form {
+    position: relative; /* Create a stacking context */
+    z-index: 10; /* Ensure it's above other elements */
+  }
+}

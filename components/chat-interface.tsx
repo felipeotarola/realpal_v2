@@ -54,7 +54,7 @@ export default function ChatInterface({
   }
 
   // Helper function to format message time
-  const formatMessageTime = (date?: Date): string => {
+  const formatMessageTime = (date: Date | undefined): string => {
     if (!date) return "Just nu"
 
     const now = new Date()
@@ -306,7 +306,7 @@ export default function ChatInterface({
                             ) : (
                               <div className="flex items-center space-x-1.5 p-1.5 border rounded-md bg-white/20">
                                 <FileIcon className="h-3.5 w-3.5 text-white" />
-                                <span className="text-xs">{attachment.name || `File ${idx + 1}`}</span>
+                                <span className="text-xs truncate max-w-[80px] sm:max-w-[100px]">{attachment.name || `File ${idx + 1}`}</span>
                               </div>
                             )}
                           </div>
