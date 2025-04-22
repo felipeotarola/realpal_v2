@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useRef, useEffect } from "react"
-import { useChat } from "ai/react"
+import { useChat as useVercelChat } from "ai/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { getAssistantSystemPrompt } from "@/lib/ai-assistant-prompt"
@@ -11,9 +11,17 @@ import { MessageCircle, X, Send, Loader2, Bot, User } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { fetchUserContext, formatUserContextForPrompt } from "@/lib/user-context-fetcher"
 import { MarkdownRenderer } from "@/components/markdown-renderer"
+import { useChat } from "@/contexts/chat-context"
 
 export function AIChatAssistant({ propertyContext }: { propertyContext?: string }) {
-  const [isOpen, setIsOpen] = useState(false)
+  const {
+    isOpen,
+    setIsOpen,
+    messages: globalMessages,
+    setMessages: setGlobalMessages,
+    threadId,
+    setThreadId,
+  } = useChat()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const { user } = useAuth()
@@ -55,29 +63,46 @@ export function AIChatAssistant({ propertyContext }: { propertyContext?: string 
 
   const initialSystemMessage = getAssistantSystemPrompt(propertyContext, userContextString)
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
+  // Initialize with welcome message if no messages exist
+  useEffect(() => {
+    if (globalMessages.length === 0) {
+      setGlobalMessages([
+        {
+          id: "welcome",
+          role: "assistant",
+          content: "Hej! Jag är RealPal, din fastighetsassistent. Hur kan jag hjälpa dig idag?",
+        },
+      ])
+    }
+  }, [globalMessages.length, setGlobalMessages])
+
+  const { input, handleInputChange, handleSubmit, isLoading, error } = useVercelChat({
     api: "/api/chat",
-    initialMessages: [
-      {
-        id: "welcome",
-        role: "assistant",
-        content: "Hej! Jag är RealPal, din fastighetsassistent. Hur kan jag hjälpa dig idag?",
-      },
-    ],
+    initialMessages: globalMessages,
     body: {
       systemMessage: initialSystemMessage,
+      threadId,
+    },
+    onResponse(response) {
+      if (response.threadId) {
+        setThreadId(response.threadId)
+      }
+    },
+    onFinish(message) {
+      // Update global messages
+      setGlobalMessages((current) => [...current, message])
     },
     disabled: !enabled || isLoadingContext,
   })
 
   // Add timestamps for new messages
   useEffect(() => {
-    const hasNewMessages = messages.some((message) => !messageTimes[message.id])
+    const hasNewMessages = globalMessages.some((message) => !messageTimes[message.id])
 
     if (hasNewMessages) {
       setMessageTimes((prevTimes) => {
         const newTimes = { ...prevTimes }
-        messages.forEach((message) => {
+        globalMessages.forEach((message) => {
           if (!newTimes[message.id]) {
             newTimes[message.id] = new Date()
           }
@@ -85,14 +110,14 @@ export function AIChatAssistant({ propertyContext }: { propertyContext?: string 
         return newTimes
       })
     }
-  }, [messages, messageTimes])
+  }, [globalMessages, messageTimes])
 
   // Scroll to bottom when messages change
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" })
     }
-  }, [messages])
+  }, [globalMessages])
 
   // Focus input when drawer opens
   useEffect(() => {
@@ -108,6 +133,14 @@ export function AIChatAssistant({ propertyContext }: { propertyContext?: string 
   const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (input.trim()) {
+      // Add user message to global messages immediately for better UX
+      const userMessage = {
+        id: Date.now().toString(),
+        role: "user" as const,
+        content: input,
+      }
+      setGlobalMessages((current) => [...current, userMessage])
+
       handleSubmit(e)
     }
   }
@@ -128,6 +161,14 @@ export function AIChatAssistant({ propertyContext }: { propertyContext?: string 
   const handlePropertyQuery = (query: string) => {
     // Set input to the query
     handleInputChange({ target: { value: query } } as React.ChangeEvent<HTMLInputElement>)
+
+    // Add user message to global messages immediately
+    const userMessage = {
+      id: Date.now().toString(),
+      role: "user" as const,
+      content: query,
+    }
+    setGlobalMessages((current) => [...current, userMessage])
 
     // Submit the form with the query
     const event = new Event("submit", {
@@ -180,7 +221,7 @@ export function AIChatAssistant({ propertyContext }: { propertyContext?: string 
 
       {/* Chat drawer - full width on all screen sizes */}
       <div
-        className={`fixed bottom-0 left-0 right-0 w-full h-[60vh] bg-white shadow-lg rounded-t-lg transition-transform duration-300 ease-in-out z-50 ${
+        className={`fixed bottom-0 left-0 right-0 w-full max-h-[90vh] h-auto bg-white shadow-lg rounded-t-lg transition-transform duration-300 ease-in-out z-50 ${
           isOpen ? "translate-y-0" : "translate-y-full"
         }`}
       >
@@ -202,9 +243,12 @@ export function AIChatAssistant({ propertyContext }: { propertyContext?: string 
           </div>
 
           {/* Messages - centered with max width for better readability on wide screens */}
-          <div className="flex-1 overflow-y-auto p-4 mx-auto w-full max-w-4xl">
+          <div
+            className="flex-1 overflow-y-auto p-4 mx-auto w-full max-w-4xl"
+            style={{ maxHeight: "calc(70vh - 120px)" }}
+          >
             <div className="space-y-4">
-              {messages.map((message) => (
+              {globalMessages.map((message) => (
                 <div
                   key={message.id}
                   className={`flex ${message.role === "user" ? "justify-end" : "justify-start"} items-start`}
@@ -291,7 +335,7 @@ export function AIChatAssistant({ propertyContext }: { propertyContext?: string 
           </div>
 
           {/* Input - centered with max width for better usability on wide screens */}
-          <div className="p-4 border-t">
+          <div className="p-4 border-t sticky bottom-0 bg-white">
             <form onSubmit={handleFormSubmit} className="flex gap-2 mx-auto w-full max-w-4xl">
               <Input
                 ref={inputRef}

@@ -10,6 +10,7 @@ import { NavBar } from "@/components/nav-bar"
 import { ComparisonIndicator } from "@/components/comparison-indicator"
 import { ChatDrawer } from "@/components/chat-drawer"
 import { Toaster } from "@/components/ui/sonner"
+import { ChatProvider } from "@/contexts/chat-context"
 import { Analytics } from "@vercel/analytics/react"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -23,7 +24,6 @@ export const metadata: Metadata = {
     maximumScale: 1,
     userScalable: false,
   },
-    generator: 'v0.dev'
 }
 
 export default function RootLayout({
@@ -34,14 +34,17 @@ export default function RootLayout({
   return (
     <html lang="sv">
       <body className={inter.className}>
-        <Analytics />
+      <Analytics />
+
         <AuthProvider>
           <ComparisonProvider>
-            <NavBar />
-            {children}
-            <ComparisonIndicator />
-            <ChatDrawer />
-            <Toaster />
+            <ChatProvider>
+              <NavBar />
+              {children}
+              <ComparisonIndicator />
+              <ChatDrawer />
+              <Toaster />
+            </ChatProvider>
           </ComparisonProvider>
         </AuthProvider>
       </body>

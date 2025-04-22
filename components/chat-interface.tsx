@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useChat } from "ai/react"
+import { useChat as useVercelChat } from "ai/react"
 import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,6 +12,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { fetchUserContext, formatUserContextForPrompt } from "@/lib/user-context-fetcher"
 import { getAssistantSystemPrompt } from "@/lib/ai-assistant-prompt"
 import { useRouter } from "next/navigation"
+import { useChat } from "@/contexts/chat-context"
 
 interface ChatInterfaceProps {
   initialSystemMessage?: string
@@ -36,7 +37,9 @@ export default function ChatInterface({
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [files, setFiles] = useState<FileList | undefined>(undefined)
-  const [threadId, setThreadId] = useState<string | null>(null)
+
+  // Use global chat context
+  const { messages: globalMessages, setMessages: setGlobalMessages, threadId, setThreadId } = useChat()
 
   // Add a function to extract property IDs from messages for comparison
   const extractPropertyIds = (text: string): string[] => {
@@ -112,6 +115,19 @@ export default function ChatInterface({
   // Create the system message with both property context and user context
   const systemMessage = getAssistantSystemPrompt(propertyContext, localUserContext)
 
+  // Initialize with welcome message if no messages exist
+  useEffect(() => {
+    if (globalMessages.length === 0) {
+      setGlobalMessages([
+        {
+          id: "welcome",
+          role: "assistant",
+          content: initialWelcomeMessage,
+        },
+      ])
+    }
+  }, [globalMessages.length, setGlobalMessages, initialWelcomeMessage])
+
   // Log the system message for debugging
   useEffect(() => {
     console.log("System message created with property context and user context")
@@ -120,29 +136,33 @@ export default function ChatInterface({
     console.log("Total system message length:", systemMessage.length)
   }, [propertyContext, localUserContext, systemMessage])
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading, error, data } = useChat({
+  const { input, handleInputChange, handleSubmit, isLoading, error, data } = useVercelChat({
     api: "/api/chat",
-    initialMessages: [
-      {
-        id: "welcome",
-        role: "assistant",
-        content: initialWelcomeMessage,
-      },
-    ],
+    initialMessages: globalMessages,
     body: {
       systemMessage: systemMessage,
+      threadId,
+    },
+    onResponse(response) {
+      if (response.threadId) {
+        setThreadId(response.threadId)
+      }
+    },
+    onFinish(message) {
+      // Update global messages
+      setGlobalMessages((current) => [...current, message])
     },
     disabled: !enabled || isLoadingContext,
   })
 
   // Add timestamps for new messages
   useEffect(() => {
-    const hasNewMessages = messages.some((message) => !messageTimes[message.id])
+    const hasNewMessages = globalMessages.some((message) => !messageTimes[message.id])
 
     if (hasNewMessages) {
       setMessageTimes((prevTimes) => {
         const newTimes = { ...prevTimes }
-        messages.forEach((message) => {
+        globalMessages.forEach((message) => {
           if (!newTimes[message.id]) {
             newTimes[message.id] = new Date()
           }
@@ -150,14 +170,14 @@ export default function ChatInterface({
         return newTimes
       })
     }
-  }, [messages, messageTimes])
+  }, [globalMessages, messageTimes])
 
   // Scroll to bottom when messages change
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" })
     }
-  }, [messages])
+  }, [globalMessages])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -172,13 +192,6 @@ export default function ChatInterface({
     }
   }
 
-  // Store the threadId when we get it from the response
-  useEffect(() => {
-    if (data?.threadId && !threadId) {
-      setThreadId(data.threadId)
-    }
-  }, [data, threadId])
-
   const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
@@ -192,6 +205,14 @@ export default function ChatInterface({
       console.log("Detected property comparison request for IDs:", propertyIds)
       // You could add additional logic here to enhance property comparisons
     }
+
+    // Add user message to global messages immediately for better UX
+    const userMessage = {
+      id: Date.now().toString(),
+      role: "user" as const,
+      content: input,
+    }
+    setGlobalMessages((current) => [...current, userMessage])
 
     // Submit the chat with files if available
     handleSubmit(e, {
@@ -211,6 +232,14 @@ export default function ChatInterface({
   const handlePropertyQuery = (query: string) => {
     // Set input to the query
     handleInputChange({ target: { value: query } } as React.ChangeEvent<HTMLInputElement>)
+
+    // Add user message to global messages immediately
+    const userMessage = {
+      id: Date.now().toString(),
+      role: "user" as const,
+      content: query,
+    }
+    setGlobalMessages((current) => [...current, userMessage])
 
     // Submit the form with the query
     const event = new Event("submit", {
@@ -295,7 +324,7 @@ export default function ChatInterface({
         className="flex-1 overflow-y-auto p-2 sm:p-3 space-y-3 property-chat-container"
         style={{ maxHeight: "calc(100vh - 180px)" }}
       >
-        {messages.map((message) => (
+        {globalMessages.map((message) => (
           <div
             key={message.id}
             className={`flex ${message.role === "user" ? "justify-end" : "justify-start"} items-start`}
