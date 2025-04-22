@@ -81,7 +81,9 @@ export function ChatDrawer({ propertyContext }: ChatDrawerProps) {
                       <div className="flex items-center justify-center w-7 h-7 rounded-full bg-secondary">
                         <MessageSquare className="h-3.5 w-3.5 text-secondary-foreground" />
                       </div>
-                      <h2 className="text-lg font-semibold">RealPal Assistent</h2>
+                      <Drawer.Title className="text-sm font-medium text-muted-foreground">
+                   RealPal Assistent
+                      </Drawer.Title>
                     </div>
                     <Button variant="ghost" size="sm" onClick={handleCloseClick} className="h-8 w-8 p-0">
                       <X className="h-4 w-4" />
