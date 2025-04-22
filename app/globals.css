@@ -169,3 +169,13 @@ body {
     transform: none; /* Remove any existing transform */
   }
 }
+/* Fix for iOS Safari 100vh issue */
+@media (max-width: 640px) {
+  .h-screen,
+  .min-h-screen,
+  .h-\[60vh\],
+  .h-\[75\%\] {
+    height: 100vh;
+    height: -webkit-fill-available;
+  }
+}
