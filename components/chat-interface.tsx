@@ -489,6 +489,7 @@ export default function ChatInterface({
             disabled={isLoading || isLoadingContext}
           />
           <Input
+            autoFocus={true}
             value={input}
             onChange={handleInputChange}
             placeholder={files && files.length > 0 ? "Fråga om denna bild..." : "Skriv ett meddelande..."}
