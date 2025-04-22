@@ -37,6 +37,7 @@ export default function ChatInterface({
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [files, setFiles] = useState<FileList | undefined>(undefined)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   // Use global chat context
   const { messages: globalMessages, setMessages: setGlobalMessages, threadId, setThreadId } = useChat()
@@ -449,6 +450,8 @@ export default function ChatInterface({
             disabled={isLoading || isLoadingContext}
           />
           <Input
+            ref={inputRef}
+
             autoFocus={true}
             value={input}
             onChange={handleInputChange}

@@ -18,6 +18,7 @@ export function ChatDrawer({ propertyContext }: ChatDrawerProps) {
   const [userContextString, setUserContextString] = useState<string>("")
   const [isLoadingContext, setIsLoadingContext] = useState(false)
   const { user } = useAuth()
+  const inputRef = useRef<HTMLInputElement>(null)
 
   // Fetch user context when component loads or user changes
   useEffect(() => {
@@ -50,6 +51,12 @@ export function ChatDrawer({ propertyContext }: ChatDrawerProps) {
     console.log("Close button clicked")
     setIsOpen(false)
   }
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      // small timeout so the drawer animation can finish
+      setTimeout(() => inputRef.current!.focus(), 200)
+    }
+  }, [isOpen])
 
   return (
     <>
