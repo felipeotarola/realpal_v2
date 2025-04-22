@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Drawer } from "vaul"
 import { MessageSquare, X } from 'lucide-react'
 import { Button } from "@/components/ui/button"
