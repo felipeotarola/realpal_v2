@@ -81,8 +81,15 @@ export function ChatDrawer({ propertyContext }: ChatDrawerProps) {
           >
             <Drawer.Portal>
               <Drawer.Overlay className="fixed inset-0 bg-black/40 z-40" />
-              <Drawer.Content className="bg-background flex flex-col rounded-t-[10px] h-[100dvh] fixed bottom-0 left-0 right-0 z-50 max-h-[100dvh]">
-                <div className="p-2 sm:p-4 bg-background rounded-t-[10px] flex flex-col h-full pb-safe bottom-safe">
+              <Drawer.Content
+  className="
+    bg-background flex flex-col rounded-t-[10px] fixed bottom-0 left-0 right-0 z-50
+    h-[100dvh]        /* modern browsers */
+    h-screen          /* fallback to 100vh */
+    h-[calc(var(--vh,1vh)*100)] /* JS‑driven fallback */
+    max-h-[100dvh]
+  "
+>                <div className="p-2 sm:p-4 bg-background rounded-t-[10px] flex flex-col h-full pb-safe bottom-safe">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <div className="flex items-center justify-center w-7 h-7 rounded-full bg-secondary">
