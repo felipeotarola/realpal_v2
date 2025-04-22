@@ -10,6 +10,7 @@ import { NavBar } from "@/components/nav-bar"
 import { ComparisonIndicator } from "@/components/comparison-indicator"
 import { ChatDrawer } from "@/components/chat-drawer"
 import { Toaster } from "@/components/ui/sonner"
+import { Analytics } from "@vercel/analytics/react"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -33,6 +34,7 @@ export default function RootLayout({
   return (
     <html lang="sv">
       <body className={inter.className}>
+        <Analytics />
         <AuthProvider>
           <ComparisonProvider>
             <NavBar />
