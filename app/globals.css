@@ -169,9 +169,3 @@ body {
     transform: none; /* Remove any existing transform */
   }
 }
-@media (max-width: 640px) {
-  .property-chat-container input {
-    font-size: 16px !important;
-    line-height: 1.5;
-  }
-}
