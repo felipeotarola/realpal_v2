@@ -14,6 +14,7 @@ import { getAssistantSystemPrompt } from "@/lib/ai-assistant-prompt"
 import { useRouter } from "next/navigation"
 import { useChat } from "@/contexts/chat-context"
 import { AnimatePresence, motion } from "framer-motion" // Add framer-motion import
+import { supabase } from "@/lib/supabaseClient"
 
 interface ChatInterfaceProps {
   initialSystemMessage?: string
@@ -39,9 +40,128 @@ export default function ChatInterface({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [files, setFiles] = useState<FileList | undefined>(undefined)
   const inputRef = useRef<HTMLInputElement>(null)
+  const [processingUrl, setProcessingUrl] = useState(false)
+  const [processingError, setProcessingError] = useState<string | null>(null)
 
   // Use global chat context
   const { messages: globalMessages, setMessages: setGlobalMessages, threadId, setThreadId } = useChat()
+
+  // Function to detect and process property URLs
+  const detectAndProcessPropertyUrl = async (inputText: string): Promise<boolean> => {
+    // Check if the input contains a property URL (Hemnet, Booli, or Bonava)
+    const propertyUrlRegex = /https?:\/\/(?:www\.)?(?:hemnet\.se|booli\.se|bonava\.se)\/[^\s]+/i;
+    const match = inputText.match(propertyUrlRegex);
+    
+    if (match) {
+      const propertyUrl = match[0];
+      setProcessingUrl(true);
+      setProcessingError(null);
+      
+      try {
+        // Call our crawler API with the detected URL
+        const response = await fetch("/api/crawler", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ url: propertyUrl }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Kunde inte hämta fastighetsdetaljer");
+        }
+
+        const data = await response.json();
+        console.log("Crawler response from assistant:", data);
+
+        // Add user message with URL
+        const userMessage = {
+          id: Date.now().toString(),
+          role: "user" as const,
+          content: inputText,
+        };
+
+        // Add assistant message with property information
+        const propertyInfo = data.property;
+        const assistantResponse = `Jag har analyserat fastigheten åt dig:
+
+**${propertyInfo.title}**
+- Pris: ${propertyInfo.price}
+- Storlek: ${propertyInfo.size}
+- Rum: ${propertyInfo.rooms}
+- Plats: ${propertyInfo.location}
+${propertyInfo.yearBuilt ? `- Byggår: ${propertyInfo.yearBuilt}\n` : ''}
+${propertyInfo.monthlyFee ? `- Månadsavgift: ${propertyInfo.monthlyFee}\n` : ''}
+
+${propertyInfo.description.substring(0, 150)}${propertyInfo.description.length > 150 ? '...' : ''}
+
+Jag har sparat fastigheten. Du kan se den under "Sparade fastigheter". Vill du veta något specifikt om denna fastighet?`;
+
+        const assistantMessage = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant" as const,
+          content: assistantResponse,
+        };
+
+        // Update messages
+        setGlobalMessages((current) => [...current, userMessage, assistantMessage]);
+
+        // Save property to database
+        await savePropertyToDatabase(data);
+
+        return true;
+      } catch (err) {
+        console.error("Error processing property URL:", err);
+        setProcessingError(err instanceof Error ? err.message : "Kunde inte hämta fastighetsdetaljer");
+        return false;
+      } finally {
+        setProcessingUrl(false);
+      }
+    }
+    
+    return false;
+  };
+
+  // Function to save property data to database
+  const savePropertyToDatabase = async (data: any) => {
+    if (!user) return;
+    
+    try {
+      const propertyData = data.property;
+      console.log("Saving property data to database:", propertyData);
+      
+      // Add to saved_properties table
+      const { data: savedProperty, error } = await supabase
+        .from("saved_properties")
+        .insert({
+          user_id: user.id,
+          title: propertyData.title,
+          price: propertyData.price,
+          location: propertyData.location,
+          description: propertyData.description,
+          size: propertyData.size,
+          rooms: propertyData.rooms,
+          url: propertyData.url,
+          images: propertyData.images || [],
+          features: propertyData.features || [],
+          year_built: propertyData.yearBuilt || null,
+          monthly_fee: propertyData.monthlyFee || null,
+          energy_rating: propertyData.energyRating || null,
+          agent: propertyData.agent || null,
+          metadata: data.metadata || {},
+        })
+        .select("id")
+        .single();
+
+      if (error) throw error;
+      
+      console.log("Property saved with ID:", savedProperty.id);
+      
+    } catch (error) {
+      console.error("Error saving property to database:", error);
+    }
+  };
 
   // Add a function to extract property IDs from messages for comparison
   const extractPropertyIds = (text: string): string[] => {
@@ -203,18 +323,22 @@ export default function ChatInterface({
     }
   }
 
-  const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
     // Don't proceed if no input and no files
     if (!input.trim() && (!files || files.length === 0)) return
 
-    // Add this to the handleFormSubmit function, right before the handleSubmit call
-    // This will help with property comparisons
-    const propertyIds = extractPropertyIds(input)
-    if (propertyIds.length > 1) {
-      console.log("Detected property comparison request for IDs:", propertyIds)
-      // You could add additional logic here to enhance property comparisons
+    // First, check if the input contains a property URL that needs processing
+    if (input.trim()) {
+      const isPropertyUrl = await detectAndProcessPropertyUrl(input);
+      
+      // If we processed a property URL, don't continue with regular chat submission
+      if (isPropertyUrl) {
+        // Clear the input field
+        handleInputChange({ target: { value: "" } } as React.ChangeEvent<HTMLInputElement>);
+        return;
+      }
     }
 
     // Add user message to global messages immediately for better UX
@@ -496,6 +620,62 @@ export default function ChatInterface({
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Processing URL indicator */}
+      {processingUrl && (
+        <motion.div 
+          className="fixed bottom-[180px] left-0 right-0 flex items-center justify-center"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          <motion.div 
+            className="flex items-center gap-3 py-3 px-5 bg-blue-50 text-blue-700 rounded-full shadow-md border border-blue-100"
+            initial={{ y: 10 }}
+            animate={{ y: 0 }}
+          >
+            <motion.div 
+              className="w-3 h-3 bg-blue-500 rounded-full"
+              animate={{ 
+                scale: [1, 1.5, 1],
+                opacity: [0.5, 1, 0.5],
+              }}
+              transition={{ 
+                duration: 1.5, 
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            />
+            <span className="text-sm font-medium">Analyserar fastigheten.</span>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {/* Error processing URL indicator */}
+      {processingError && (
+        <motion.div 
+          className="fixed bottom-[180px] left-0 right-0 flex items-center justify-center"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <motion.div 
+            className="flex items-center gap-3 py-3 px-5 bg-red-50 text-red-700 rounded-full shadow-md border border-red-100"
+            initial={{ y: 10 }}
+            animate={{ y: 0 }}
+          >
+            <div className="w-3 h-3 bg-red-500 rounded-full" />
+            <span className="text-sm font-medium">{processingError}</span>
+            <button 
+              onClick={() => setProcessingError(null)} 
+              className="ml-2 p-1 hover:bg-red-100 rounded-full"
+            >
+              <X size={14} />
+            </button>
+          </motion.div>
+        </motion.div>
+      )}
+
       <form onSubmit={handleFormSubmit} className="chat-footer">
         {/* File preview */}
         {files && files.length > 0 && (
@@ -533,38 +713,38 @@ export default function ChatInterface({
         )}
 
         <div className="flex gap-2 sm:gap-3">
-          <button
+            <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
             className="p-2.5 rounded-lg border bg-white text-gray-700 hover:bg-gray-50 transition-all shadow-sm flex-shrink-0"
             aria-label="Ladda upp bild"
-            disabled={isLoading || isLoadingContext}
-          >
+            disabled={isLoading || isLoadingContext || processingUrl}
+            >
             <ImageIcon className="h-5 w-5" />
-          </button>
-          <input
+            </button>
+            <input
             type="file"
             ref={fileInputRef}
             onChange={handleFileChange}
             accept="image/*"
             className="hidden"
-            disabled={isLoading || isLoadingContext}
-          />
-          <Input
+            disabled={isLoading || isLoadingContext || processingUrl}
+            />
+            <Input
             ref={inputRef}
             autoFocus={true}
             value={input}
             onChange={handleInputChange}
-            placeholder={files && files.length > 0 ? "Fråga om denna bild..." : "Skriv ett meddelande..."}
-            disabled={isLoading || isLoadingContext}
+            placeholder={processingUrl ? "Analyserar fastighetslänk..." : (files && files.length > 0 ? "Fråga om denna bild..." : "Skriv ett meddelande eller klistra in en Hemnet, Booli eller Bonava-länk...")}
+            disabled={isLoading || isLoadingContext || processingUrl}
             className="flex-1 h-11 text-sm rounded-lg bg-white shadow-sm border-gray-200"
-          />
+            />
           <Button
             type="submit"
-            disabled={isLoading || isLoadingContext || (!input.trim() && !files?.length)}
+            disabled={isLoading || isLoadingContext || processingUrl || (!input.trim() && !files?.length)}
             className="h-11 px-3.5 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-sm transition-all flex-shrink-0"
           >
-            {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send size={18} />}
+            {isLoading || processingUrl ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send size={18} />}
           </Button>
         </div>
 
@@ -576,7 +756,7 @@ export default function ChatInterface({
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
             className="text-xs sm:text-sm bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 px-3 py-1 rounded-full hover:from-blue-100 hover:to-blue-200 transition-colors border border-blue-200 shadow-sm"
-            disabled={isLoading || isLoadingContext}
+            disabled={isLoading || isLoadingContext || processingUrl}
           >
             Visa sparade fastigheter
           </motion.button>
@@ -586,7 +766,7 @@ export default function ChatInterface({
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
             className="text-xs sm:text-sm bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 px-3 py-1 rounded-full hover:from-blue-100 hover:to-blue-200 transition-colors border border-blue-200 shadow-sm"
-            disabled={isLoading || isLoadingContext}
+            disabled={isLoading || isLoadingContext || processingUrl}
           >
             Visa preferenser
           </motion.button>
@@ -596,14 +776,14 @@ export default function ChatInterface({
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
             className="text-xs sm:text-sm bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 px-3 py-1 rounded-full hover:from-blue-100 hover:to-blue-200 transition-colors border border-blue-200 shadow-sm"
-            disabled={isLoading || isLoadingContext}
+            disabled={isLoading || isLoadingContext || processingUrl}
           >
             Rekommendation
           </motion.button>
         </div>
 
         <p className="text-xs text-gray-500 text-center mt-2">
-          Tips: Ladda upp bilder för att analysera dem (max 4MB)
+          Tips: Ladda upp bilder eller klistra in en Hemnet-länk för att analysera fastigheter
         </p>
       </form>
 

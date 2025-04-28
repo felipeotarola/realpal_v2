@@ -61,7 +61,7 @@ Beskrivning: ${property.description.substring(0, 300)}...
 
   return (
     <>
-      <AIChatAssistant propertyContext={propertyContext} />
+      {/* <AIChatAssistant propertyContext={propertyContext} /> */}
       {/* Broker Information */}
       {analysis?.brokerInfo &&
         analysis?.brokerInfo?.searchResults &&
