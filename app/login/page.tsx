@@ -22,14 +22,15 @@ export default function LoginPage() {
   const searchParams = useSearchParams()
   const redirect = searchParams.get("redirect")
 
-  // Om användaren redan är inloggad, omdirigera
+  // Redirect logged in users
   useEffect(() => {
     if (user) {
       if (redirect === "save") {
-        // Om användaren kom från "spara" funktionen, gå tillbaka till startsidan
+        // If the user came from the "save" function, go back to the home page
         router.push("/")
       } else {
-        router.push("/")
+        // Redirect to chat page instead of home page
+        router.push("/chat")
       }
     }
   }, [user, router, redirect])
@@ -46,7 +47,7 @@ export default function LoginPage() {
         return
       }
 
-      // Inloggningen lyckades, omdirigeringen hanteras av useEffect ovan
+      // Login successful, redirection handled by useEffect above
     } catch (err) {
       setError("Ett oväntat fel inträffade")
       console.error(err)

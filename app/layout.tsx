@@ -42,7 +42,6 @@ export default function RootLayout({
               <NavBar />
               {children}
               <ComparisonIndicator />
-              <ChatDrawer />
               <Toaster />
             </ChatProvider>
           </ComparisonProvider>

@@ -292,8 +292,8 @@ export default function ChatInterface({
 
 
   return (
-    <div className="flex flex-col h-full">
-          <div className="flex-1 overflow-y-auto p-2 sm:p-3 space-y-3 property-chat-container">
+    <div className="flex flex-col h-full relative">
+      <div className="flex-1 overflow-y-auto p-2 sm:p-3 space-y-3 property-chat-container chat-content">
         {globalMessages.map((message) => (
           <div
             key={message.id}
@@ -409,8 +409,8 @@ export default function ChatInterface({
         <div ref={messagesEndRef} />
       </div>
 
- <form onSubmit={handleFormSubmit} className="p-2 sm:p-3 border-t bg-white z-10">
-      {/* File preview */}
+      <form onSubmit={handleFormSubmit} className="chat-footer">
+        {/* File preview */}
         {files && files.length > 0 && (
           <div className="mb-1.5 sm:mb-2">
             <div className="relative inline-block">
@@ -510,7 +510,9 @@ export default function ChatInterface({
       </form>
 
       {isLoadingContext && (
-        <div className="text-[10px] sm:text-xs text-center text-gray-500 pb-1.5">Laddar din information...</div>
+        <div className="text-[10px] sm:text-xs text-center text-gray-500 pb-1.5 absolute bottom-[110px] left-0 right-0">
+          Laddar din information...
+        </div>
       )}
     </div>
   )

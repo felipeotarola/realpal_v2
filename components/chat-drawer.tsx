@@ -10,11 +10,12 @@ import { useAuth } from "@/contexts/auth-context"
 import { fetchUserContext, formatUserContextForPrompt } from "@/lib/user-context-fetcher"
 
 interface ChatDrawerProps {
-  propertyContext?: string
+  propertyContext?: string;
+  autoOpen?: boolean;
 }
 
-export function ChatDrawer({ propertyContext }: ChatDrawerProps) {
-  const [isOpen, setIsOpen] = useState(false)
+export function ChatDrawer({ propertyContext, autoOpen = false }: ChatDrawerProps) {
+  const [isOpen, setIsOpen] = useState(autoOpen)
   const [userContextString, setUserContextString] = useState<string>("")
   const [isLoadingContext, setIsLoadingContext] = useState(false)
   const { user } = useAuth()
@@ -42,6 +43,13 @@ export function ChatDrawer({ propertyContext }: ChatDrawerProps) {
     loadUserContext()
   }, [user])
 
+  // Auto-open the drawer when autoOpen is true and component mounts
+  useEffect(() => {
+    if (autoOpen && user) {
+      setIsOpen(true)
+    }
+  }, [autoOpen, user])
+
   const handleButtonClick = () => {
     console.log("Floating button clicked")
     setIsOpen(true)
@@ -51,6 +59,7 @@ export function ChatDrawer({ propertyContext }: ChatDrawerProps) {
     console.log("Close button clicked")
     setIsOpen(false)
   }
+  
   useEffect(() => {
     if (isOpen && inputRef.current) {
       // small timeout so the drawer animation can finish
@@ -89,14 +98,15 @@ export function ChatDrawer({ propertyContext }: ChatDrawerProps) {
     h-[calc(var(--vh,1vh)*100)] /* JS‑driven fallback */
     max-h-[100dvh]
   "
->                <div className="p-2 sm:p-4 bg-background rounded-t-[10px] flex flex-col h-full pb-safe bottom-safe">
+>
+                <div className="p-2 sm:p-4 bg-background rounded-t-[10px] flex flex-col h-full pb-safe bottom-safe">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <div className="flex items-center justify-center w-7 h-7 rounded-full bg-secondary">
                         <MessageSquare className="h-3.5 w-3.5 text-secondary-foreground" />
                       </div>
                       <Drawer.Title className="text-sm font-medium text-muted-foreground">
-                   RealPal Assistent
+                        RealPal Assistent
                       </Drawer.Title>
                     </div>
                     <Button variant="ghost" size="sm" onClick={handleCloseClick} className="h-8 w-8 p-0">

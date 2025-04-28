@@ -23,14 +23,15 @@ export default function SignupPage() {
   const searchParams = useSearchParams()
   const redirect = searchParams.get("redirect")
 
-  // Om användaren redan är inloggad, omdirigera
+  // Redirect logged in users
   useEffect(() => {
     if (user) {
       if (redirect === "save") {
-        // Om användaren kom från "spara" funktionen, gå tillbaka till startsidan
+        // If the user came from the "save" function, go back to the home page
         router.push("/")
       } else {
-        router.push("/")
+        // Redirect to chat page instead of home page
+        router.push("/chat")
       }
     }
   }, [user, router, redirect])
@@ -67,7 +68,7 @@ export default function SignupPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold">Skapa ett konto</CardTitle>
-          <CardDescription>Ange din e-post och skapa ett lösenord för att komma igång</CardDescription>
+          <CardDescription>Ange din e-post och ett lösenord för att registrera dig</CardDescription>
         </CardHeader>
         <CardContent>
           {error && (
@@ -81,7 +82,7 @@ export default function SignupPage() {
             <Alert className="mb-4">
               <CheckCircle2 className="h-4 w-4" />
               <AlertDescription>
-                Registreringen lyckades! Kontrollera din e-post för en bekräftelselänk.
+                Ditt konto har skapats! Ett bekräftelsemail har skickats till din e-post.
               </AlertDescription>
             </Alert>
           ) : (
@@ -110,9 +111,7 @@ export default function SignupPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  minLength={6}
                 />
-                <p className="text-xs text-gray-500">Lösenordet måste vara minst 6 tecken långt</p>
               </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? (

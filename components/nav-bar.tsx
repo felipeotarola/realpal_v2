@@ -51,6 +51,9 @@ export const NavBar = () => {
               <Link href="/" className="text-gray-600 hover:text-gray-800">
                 Hem
               </Link>
+              <Link href="/chat" className="text-gray-600 hover:text-gray-800">
+                Realpal Assistent
+              </Link>
               <Link href="/dashboard" className="text-gray-600 hover:text-gray-800">
                 Dashboard
               </Link>
@@ -134,6 +137,14 @@ export const NavBar = () => {
               </Link>
               {user ? (
                 <>
+                <Link
+                    href="/chat"
+                    className="flex items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-gray-100"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <LayoutDashboard className="h-4 w-4" />
+                    Realpal Assistent
+                  </Link>
                   <Link
                     href="/dashboard"
                     className="flex items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-gray-100"
