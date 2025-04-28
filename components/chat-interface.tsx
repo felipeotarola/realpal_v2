@@ -13,6 +13,7 @@ import { fetchUserContext, formatUserContextForPrompt } from "@/lib/user-context
 import { getAssistantSystemPrompt } from "@/lib/ai-assistant-prompt"
 import { useRouter } from "next/navigation"
 import { useChat } from "@/contexts/chat-context"
+import { AnimatePresence, motion } from "framer-motion" // Add framer-motion import
 
 interface ChatInterfaceProps {
   initialSystemMessage?: string
@@ -290,120 +291,206 @@ export default function ChatInterface({
     }
   }, [])
 
+  // Bubble animation variants for framer motion
+  const bubbleVariants = {
+    hidden: { 
+      opacity: 0,
+      scale: 0.8,
+      y: 10
+    },
+    visible: { 
+      opacity: 1, 
+      scale: 1,
+      y: 0,
+      transition: { 
+        type: "spring",
+        damping: 25,
+        stiffness: 500
+      }
+    },
+    exit: { 
+      opacity: 0,
+      transition: { 
+        duration: 0.2 
+      } 
+    }
+  }
+
+  // Typing indicator animation variants
+  const typingVariants = {
+    initial: {
+      opacity: 0.5,
+      y: 0
+    },
+    animate: {
+      opacity: 1,
+      y: [0, -4, 0],
+      transition: {
+        duration: 0.6,
+        repeat: Infinity,
+        repeatType: "loop" as const
+      }
+    }
+  }
+
 
   return (
     <div className="flex flex-col h-full relative">
-      <div className="flex-1 overflow-y-auto p-2 sm:p-3 space-y-3 property-chat-container chat-content">
-        {globalMessages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex ${message.role === "user" ? "justify-end" : "justify-start"} items-start`}
-          >
-            {message.role === "assistant" && (
-              <div className="flex flex-col items-center mr-1.5 sm:mr-2">
-                <div className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-blue-100">
-                  <Bot className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-blue-600" />
-                </div>
-                <span className="text-[10px] sm:text-xs font-medium text-blue-600 mt-0.5">AI</span>
-              </div>
-            )}
-
-            <div className="flex flex-col">
-              <div
-                className={`max-w-[85%] sm:max-w-[80%] rounded-lg p-2 sm:p-2.5 text-sm ${
-                  message.role === "user" ? "bg-blue-500 text-white" : "bg-gray-100 text-gray-800"
-                }`}
-              >
-                {message.role === "user" ? (
-                  <div>
-                    <p className="leading-relaxed tracking-wide text-sm">{message.content}</p>
-
-                    {/* Display attachments for user messages */}
-                    {message.experimental_attachments && message.experimental_attachments.length > 0 && (
-                      <div className="mt-2 space-y-1.5">
-                        {message.experimental_attachments.map((attachment, idx) => (
-                          <div key={idx}>
-                            {attachment.contentType?.startsWith("image/") ? (
-                              <div className="rounded-md overflow-hidden border mt-1.5 bg-white/20">
-                                {attachment.url && (
-                                  <img
-                                    src={attachment.url || "/placeholder.svg"}
-                                    alt={attachment.name || `Image ${idx + 1}`}
-                                    className="max-w-full h-auto"
-                                  />
-                                )}
-                              </div>
-                            ) : (
-                              <div className="flex items-center space-x-1.5 p-1.5 border rounded-md bg-white/20">
-                                <FileIcon className="h-3.5 w-3.5 text-white" />
-                                <span className="text-xs">{attachment.name || `File ${idx + 1}`}</span>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
+      <div 
+        className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-4 property-chat-container chat-content"
+      >
+        <AnimatePresence>
+          {globalMessages.map((message) => (
+            <motion.div
+              key={message.id}
+              className={`flex ${message.role === "user" ? "justify-end" : "justify-start"} items-start`}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              variants={bubbleVariants}
+              layout
+            >
+              {message.role === "assistant" && (
+                <div className="flex flex-col items-center mr-2 sm:mr-3">
+                  <div className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 shadow-md">
+                    <Bot className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                   </div>
-                ) : (
-                  <div className="text-sm chat-message">
-                    <MarkdownRenderer content={message.content} />
-                  </div>
-                )}
-              </div>
-              <div
-                className={`text-[10px] sm:text-xs text-gray-500 mt-0.5 ${message.role === "user" ? "text-right" : "text-left"}`}
-              >
-                {formatMessageTime(messageTimes[message.id])}
-              </div>
-            </div>
-
-            {message.role === "user" && (
-              <div className="flex flex-col items-center ml-1.5 sm:ml-2">
-                <div className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-blue-500">
-                  <User className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-white" />
+                  <span className="text-[10px] sm:text-xs font-medium text-blue-600 mt-1">AI</span>
                 </div>
-                <span className="text-[10px] sm:text-xs font-medium text-blue-600 mt-0.5">Du</span>
+              )}
+
+              <div className="flex flex-col max-w-[75%] sm:max-w-[70%]">
+                <motion.div
+                  className={`rounded-2xl p-3 sm:p-4 text-sm shadow-sm ${
+                    message.role === "user" 
+                      ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white" 
+                      : "bg-white border border-gray-100 text-gray-800"
+                  }`}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3 }}
+                  style={{ 
+                    borderTopRightRadius: message.role === "user" ? "4px" : "16px",
+                    borderTopLeftRadius: message.role === "assistant" ? "4px" : "16px",
+                  }}
+                >
+                  {message.role === "user" ? (
+                    <div>
+                      <p className="leading-relaxed tracking-wide text-sm">{message.content}</p>
+
+                      {/* Display attachments for user messages */}
+                      {message.experimental_attachments && message.experimental_attachments.length > 0 && (
+                        <div className="mt-3 space-y-2">
+                          {message.experimental_attachments.map((attachment, idx) => (
+                            <motion.div 
+                              key={idx}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: 0.2 }}
+                            >
+                              {attachment.contentType?.startsWith("image/") ? (
+                                <div className="rounded-lg overflow-hidden border border-white/30 mt-2 bg-white/20">
+                                  {attachment.url && (
+                                    <img
+                                      src={attachment.url || "/placeholder.svg"}
+                                      alt={attachment.name || `Image ${idx + 1}`}
+                                      className="max-w-full h-auto"
+                                    />
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="flex items-center space-x-2 p-2 border rounded-md bg-white/20">
+                                  <FileIcon className="h-4 w-4 text-white" />
+                                  <span className="text-xs">{attachment.name || `File ${idx + 1}`}</span>
+                                </div>
+                              )}
+                            </motion.div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-sm chat-message">
+                      <MarkdownRenderer content={message.content} />
+                    </div>
+                  )}
+                </motion.div>
+                <div
+                  className={`text-[10px] sm:text-xs text-gray-500 mt-1 px-1 ${message.role === "user" ? "text-right" : "text-left"}`}
+                >
+                  {formatMessageTime(messageTimes[message.id])}
+                </div>
               </div>
-            )}
-          </div>
-        ))}
+
+              {message.role === "user" && (
+                <div className="flex flex-col items-center ml-2 sm:ml-3">
+                  <div className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 shadow-md">
+                    <User className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                  </div>
+                  <span className="text-[10px] sm:text-xs font-medium text-blue-600 mt-1">Du</span>
+                </div>
+              )}
+            </motion.div>
+          ))}
+        </AnimatePresence>
 
         {isLoading && (
-          <div className="flex justify-start items-start">
-            <div className="flex flex-col items-center mr-1.5 sm:mr-2">
-              <div className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-blue-100">
-                <Bot className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-blue-600" />
+          <motion.div 
+            className="flex justify-start items-start"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="flex flex-col items-center mr-2 sm:mr-3">
+              <div className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 shadow-md">
+                <Bot className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
               </div>
-              <span className="text-[10px] sm:text-xs font-medium text-blue-600 mt-0.5">AI</span>
+              <span className="text-[10px] sm:text-xs font-medium text-blue-600 mt-1">AI</span>
             </div>
-            <div className="flex flex-col">
-              <div className="max-w-[85%] sm:max-w-[80%] rounded-lg p-2 sm:p-2.5 bg-gray-100 text-gray-800">
-                <div className="flex space-x-1.5">
-                  <div
-                    className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce"
+            <div className="flex flex-col max-w-[75%] sm:max-w-[70%]">
+              <div 
+                className="max-w-full rounded-2xl rounded-tl-sm p-4 sm:p-5 bg-white border border-gray-100 text-gray-800 shadow-sm"
+              >
+                <div className="flex space-x-2">
+                  <motion.div
+                    className="w-2 h-2 rounded-full bg-blue-500"
+                    variants={typingVariants}
+                    initial="initial"
+                    animate="animate"
                     style={{ animationDelay: "0ms" }}
-                  ></div>
-                  <div
-                    className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce"
+                  ></motion.div>
+                  <motion.div
+                    className="w-2 h-2 rounded-full bg-blue-500"
+                    variants={typingVariants}
+                    initial="initial"
+                    animate="animate"
                     style={{ animationDelay: "300ms" }}
-                  ></div>
-                  <div
-                    className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce"
+                  ></motion.div>
+                  <motion.div
+                    className="w-2 h-2 rounded-full bg-blue-500"
+                    variants={typingVariants}
+                    initial="initial"
+                    animate="animate"
                     style={{ animationDelay: "600ms" }}
-                  ></div>
+                  ></motion.div>
                 </div>
               </div>
-              <div className="text-[10px] sm:text-xs text-gray-500 mt-0.5">Just nu</div>
+              <div className="text-[10px] sm:text-xs text-gray-500 mt-1 px-1">Just nu</div>
             </div>
-          </div>
+          </motion.div>
         )}
 
         {error && (
-          <div className="flex justify-center">
-            <div className="max-w-[85%] sm:max-w-[80%] rounded-lg p-2 sm:p-2.5 bg-red-100 text-red-800 text-sm">
+          <motion.div 
+            className="flex justify-center"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="max-w-[85%] sm:max-w-[80%] rounded-lg p-3 sm:p-4 bg-red-100 text-red-800 text-sm border border-red-200 shadow-sm">
               Ett fel uppstod. Försök igen senare.
             </div>
-          </div>
+          </motion.div>
         )}
 
         <div ref={messagesEndRef} />
@@ -412,43 +499,48 @@ export default function ChatInterface({
       <form onSubmit={handleFormSubmit} className="chat-footer">
         {/* File preview */}
         {files && files.length > 0 && (
-          <div className="mb-1.5 sm:mb-2">
+          <motion.div 
+            className="mb-2 sm:mb-3"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
             <div className="relative inline-block">
-              <div className="rounded-md overflow-hidden border">
+              <div className="rounded-lg overflow-hidden border shadow-sm">
                 {files[0].type.startsWith("image/") ? (
                   <img
                     src={URL.createObjectURL(files[0]) || "/placeholder.svg"}
                     alt={`File preview`}
-                    className="max-h-24 sm:max-h-32 object-contain"
+                    className="max-h-28 sm:max-h-36 object-contain"
                   />
                 ) : (
-                  <div className="flex items-center space-x-1.5 p-1.5 border rounded-md">
+                  <div className="flex items-center space-x-2 p-2 border rounded-md bg-white">
                     <FileIcon className="h-4 w-4" />
-                    <span className="text-xs truncate max-w-[80px] sm:max-w-[100px]">{files[0].name}</span>
+                    <span className="text-xs truncate max-w-[100px] sm:max-w-[150px]">{files[0].name}</span>
                   </div>
                 )}
               </div>
               <button
                 type="button"
                 onClick={clearFiles}
-                className="absolute -top-1.5 -right-1.5 bg-white text-gray-800 rounded-full p-0.5 shadow-sm hover:bg-gray-100 border"
+                className="absolute -top-2 -right-2 bg-white text-gray-800 rounded-full p-1 shadow-md hover:bg-gray-100 border transition-colors"
                 aria-label="Ta bort fil"
               >
-                <X className="h-2.5 w-2.5" />
+                <X className="h-3 w-3" />
               </button>
             </div>
-          </div>
+          </motion.div>
         )}
 
-        <div className="flex gap-1.5 sm:gap-2">
+        <div className="flex gap-2 sm:gap-3">
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="p-1.5 sm:p-2 rounded-md border bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+            className="p-2.5 rounded-lg border bg-white text-gray-700 hover:bg-gray-50 transition-all shadow-sm flex-shrink-0"
             aria-label="Ladda upp bild"
             disabled={isLoading || isLoadingContext}
           >
-            <ImageIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+            <ImageIcon className="h-5 w-5" />
           </button>
           <input
             type="file"
@@ -465,54 +557,68 @@ export default function ChatInterface({
             onChange={handleInputChange}
             placeholder={files && files.length > 0 ? "Fråga om denna bild..." : "Skriv ett meddelande..."}
             disabled={isLoading || isLoadingContext}
-            className="flex-1 h-9 text-sm"
+            className="flex-1 h-11 text-sm rounded-lg bg-white shadow-sm border-gray-200"
           />
           <Button
             type="submit"
             disabled={isLoading || isLoadingContext || (!input.trim() && !files?.length)}
-            className="h-9 px-2.5"
+            className="h-11 px-3.5 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-sm transition-all flex-shrink-0"
           >
-            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send size={16} />}
+            {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send size={18} />}
           </Button>
         </div>
 
         {/* Add quick action buttons for property-related queries */}
-        <div className="flex flex-wrap gap-1.5 mt-2">
-          <button
+        <div className="flex flex-wrap gap-2 mt-3">
+          <motion.button
             type="button"
             onClick={() => handlePropertyQuery("Visa mina sparade fastigheter")}
-            className="text-[10px] sm:text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full hover:bg-blue-200 transition-colors"
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            className="text-xs sm:text-sm bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 px-3 py-1 rounded-full hover:from-blue-100 hover:to-blue-200 transition-colors border border-blue-200 shadow-sm"
             disabled={isLoading || isLoadingContext}
           >
             Visa sparade fastigheter
-          </button>
-          <button
+          </motion.button>
+          <motion.button
             type="button"
             onClick={() => handlePropertyQuery("Vilka är mina preferenser?")}
-            className="text-[10px] sm:text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full hover:bg-blue-200 transition-colors"
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            className="text-xs sm:text-sm bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 px-3 py-1 rounded-full hover:from-blue-100 hover:to-blue-200 transition-colors border border-blue-200 shadow-sm"
             disabled={isLoading || isLoadingContext}
           >
             Visa preferenser
-          </button>
-          <button
+          </motion.button>
+          <motion.button
             type="button"
             onClick={() => handlePropertyQuery("Vilken fastighet passar mig bäst?")}
-            className="text-[10px] sm:text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full hover:bg-blue-200 transition-colors"
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            className="text-xs sm:text-sm bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 px-3 py-1 rounded-full hover:from-blue-100 hover:to-blue-200 transition-colors border border-blue-200 shadow-sm"
             disabled={isLoading || isLoadingContext}
           >
             Rekommendation
-          </button>
+          </motion.button>
         </div>
 
-        <p className="text-[10px] sm:text-xs text-gray-500 text-center mt-1.5">
+        <p className="text-xs text-gray-500 text-center mt-2">
           Tips: Ladda upp bilder för att analysera dem (max 4MB)
         </p>
       </form>
 
       {isLoadingContext && (
-        <div className="text-[10px] sm:text-xs text-center text-gray-500 pb-1.5 absolute bottom-[110px] left-0 right-0">
-          Laddar din information...
-        </div>
+        <motion.div 
+          className="text-xs text-center text-blue-500 py-2 fixed bottom-[180px] left-0 right-0 bg-white/70 backdrop-blur-sm"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="flex items-center justify-center">
+            <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+            Laddar din information...
+          </div>
+        </motion.div>
       )}
     </div>
   )

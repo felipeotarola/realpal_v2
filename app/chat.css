@@ -17,3 +17,138 @@
     word-break: break-word;
   }
 }
+
+/* Enhanced styling for the chat interface */
+.property-chat-container {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(203, 213, 224, 0.5) transparent;
+}
+
+.property-chat-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.property-chat-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.property-chat-container::-webkit-scrollbar-thumb {
+  background-color: rgba(203, 213, 224, 0.5);
+  border-radius: 20px;
+}
+
+.property-chat-container::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(160, 174, 192, 0.7);
+}
+
+/* Modern image styling */
+.chat-message img {
+  border-radius: 8px;
+  transition: transform 0.3s ease;
+}
+
+.chat-message img:hover {
+  transform: scale(1.02);
+}
+
+/* Code block styling */
+.chat-message pre {
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 0.5rem 0;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.chat-message pre:hover {
+  background: rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Lists in chat */
+.chat-message ul, 
+.chat-message ol {
+  margin-left: 1.5rem;
+}
+
+/* Table styling */
+.chat-message table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+.chat-message th,
+.chat-message td {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.chat-message th {
+  background-color: rgba(0, 0, 0, 0.03);
+  font-weight: 600;
+}
+
+.chat-message tr:nth-child(even) {
+  background-color: rgba(0, 0, 0, 0.01);
+}
+
+/* Make sure the chat footer is always fixed at the bottom */
+.chat-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(203, 213, 224, 0.5);
+  padding: 0.75rem 1rem;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.03);
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  width: 100%;
+}
+
+/* Ensure proper spacing at the bottom of the chat content */
+.chat-content {
+  padding-bottom: 180px !important; /* Added extra space to account for the fixed footer */
+}
+
+/* Mobile message styling */
+@media (max-width: 640px) {
+  .chat-message pre {
+    max-width: 100%;
+    font-size: 0.85rem;
+    padding: 0.75rem;
+  }
+  
+  .chat-message table {
+    font-size: 0.85rem;
+  }
+  
+  .chat-footer {
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .chat-content {
+    padding-bottom: 160px !important;
+  }
+}
+
+/* Fix for iOS Safari vh issue */
+@supports (-webkit-touch-callout: none) {
+  .chat-container {
+    height: calc(var(--vh, 1vh) * 100);
+  }
+}
+
+/* Ensure parent containers have proper positioning for fixed elements */
+.flex-1.overflow-hidden {
+  position: relative;
+}
