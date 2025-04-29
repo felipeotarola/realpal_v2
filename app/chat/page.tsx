@@ -11,7 +11,6 @@ import { useChat } from "@/contexts/chat-context"
 import { useChat as useVercelChat } from "ai/react"
 import { fetchUserContext, formatUserContextForPrompt } from "@/lib/user-context-fetcher"
 import { supabase } from "@/lib/supabaseClient"
-import "../chat.css"
 
 export default function ChatPage() {
   const { user } = useAuth()
@@ -274,8 +273,7 @@ Jag har sparat fastigheten. Du kan se den under "Sparade fastigheter". Vill du v
 
   return (
     <ProtectedRoute>
-      <div className="h-screen flex flex-col">
-        {/* Header with animation */}
+<div>       {/* Header with animation */}
         <motion.div 
           className="bg-gradient-to-r from-blue-50 to-blue-100 px-4 py-3.5 border-b border-blue-200 shadow-sm flex-shrink-0"
           initial={{ opacity: 0, y: -10 }}
@@ -301,7 +299,7 @@ Jag har sparat fastigheten. Du kan se den under "Sparade fastigheter". Vill du v
         </motion.div>
         
         {/* Chat interface component for displaying messages */}
-        <div className="flex-1 relative">
+        <div className="property-chat-container">
           <ChatInterface
             initialSystemMessage={systemMessage}
             initialWelcomeMessage="Hej! Jag är RealPal, din fastighetsassistent. Hur kan jag hjälpa dig idag?"
@@ -310,6 +308,7 @@ Jag har sparat fastigheten. Du kan se den under "Sparade fastigheter". Vill du v
         </div>
         
         {/* Input form as a separate component */}
+      </div>
         <ChatInputForm
           input={input}
           handleInputChange={handleInputChange}
@@ -325,7 +324,6 @@ Jag har sparat fastigheten. Du kan se den under "Sparade fastigheter". Vill du v
           files={files}
           setFiles={setFiles}
         />
-      </div>
     </ProtectedRoute>
   )
 }
