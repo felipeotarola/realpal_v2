@@ -58,7 +58,7 @@ export default function ChatPage() {
 
   return (
     <ProtectedRoute>
-      <div className="flex flex-col h-screen max-h-screen overflow-hidden chat-container">
+      <div className="h-screen flex flex-col">
         {/* Header with animation */}
         <motion.div 
           className="bg-gradient-to-r from-blue-50 to-blue-100 px-4 py-3.5 border-b border-blue-200 shadow-sm flex-shrink-0"
@@ -84,8 +84,8 @@ export default function ChatPage() {
           </motion.p>
         </motion.div>
         
-        {/* Chat container with flex-1 to fill remaining space */}
-        <div className="flex-1 relative flex flex-col overflow-hidden">
+        {/* Chat container without its own scrolling */}
+        <div className="flex-1">
           <ChatInterface
             initialSystemMessage={getAssistantSystemPrompt(undefined, userContextString)}
             initialWelcomeMessage="Hej! Jag är RealPal, din fastighetsassistent. Hur kan jag hjälpa dig idag?"

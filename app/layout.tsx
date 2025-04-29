@@ -4,6 +4,7 @@ import { Inter } from "next/font/google"
 import { AuthProvider } from "@/contexts/auth-context"
 import { ChatProvider } from "@/contexts/chat-context"
 import { ComparisonProvider } from "@/contexts/comparison-context"
+import { NavBar } from "@/components/nav-bar"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -26,7 +27,7 @@ export default function RootLayout({
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
       </head>
-      <body className={`${inter.variable} font-sans bg-slate-50`} style={{ height: '100%', overflow: 'hidden' }}>
+      <body className={`${inter.variable} font-sans bg-slate-50`} style={{ height: '100%' }}>
         <AuthProvider>
           <ChatProvider>
             <ComparisonProvider>
@@ -35,7 +36,9 @@ export default function RootLayout({
                 defaultTheme="light"
                 enableSystem
               >
-                <main className="h-screen overflow-hidden">{children}</main>
+                <main className="h-screen overflow-auto">
+                  <NavBar />
+                  {children}</main>
               </ThemeProvider>
             </ComparisonProvider>
           </ChatProvider>

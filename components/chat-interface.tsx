@@ -459,7 +459,7 @@ Jag har sparat fastigheten. Du kan se den under "Sparade fastigheter". Vill du v
 
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto px-4 py-4 pb-28 chat-content">
 
         <AnimatePresence>

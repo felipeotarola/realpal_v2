@@ -95,10 +95,11 @@ body {
 
 /* Mobile optimizations */
 @media (max-width: 640px) {
-  /* Prevent horizontal overflow */
+  /* Prevent horizontal overflow but allow vertical scrolling */
   body,
   html {
     overflow-x: hidden;
+    overflow-y: auto;
     width: 100%;
     position: relative;
   }
@@ -167,15 +168,5 @@ body {
     left: 0;
     right: 0;
     transform: none; /* Remove any existing transform */
-  }
-}
-/* Fix for iOS Safari 100vh issue */
-@media (max-width: 640px) {
-  .h-screen,
-  .min-h-screen,
-  .h-\[60vh\],
-  .h-\[75\%\] {
-    height: 100vh;
-    height: -webkit-fill-available;
   }
 }
