@@ -37,7 +37,7 @@ export default function ChatPage() {
 
   // Effect to handle mobile viewport height
   useEffect(() => {
-    // Set initial viewport height
+    // Set initial viewport height for mobile devices
     const setVh = () => {
       const vh = window.innerHeight * 0.01;
       document.documentElement.style.setProperty('--vh', `${vh}px`);
@@ -46,22 +46,45 @@ export default function ChatPage() {
     // Set it initially
     setVh();
 
-    // Update on resize and orientation change
+    // Update on resize, orientation change, and keyboard appearance
     window.addEventListener('resize', setVh);
     window.addEventListener('orientationchange', setVh);
+    
+    // Special handling for iOS keyboard
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if (isIOS) {
+      // When virtual keyboard appears, the window resizes
+      window.addEventListener('focusin', () => {
+        // Add a class to handle keyboard appearance
+        document.body.classList.add('keyboard-open');
+      });
+      
+      window.addEventListener('focusout', () => {
+        // Remove the class when keyboard disappears
+        document.body.classList.remove('keyboard-open');
+      });
+    }
 
     return () => {
       window.removeEventListener('resize', setVh);
       window.removeEventListener('orientationchange', setVh);
+      if (isIOS) {
+        window.removeEventListener('focusin', () => {
+          document.body.classList.add('keyboard-open');
+        });
+        window.removeEventListener('focusout', () => {
+          document.body.classList.remove('keyboard-open');
+        });
+      }
     };
   }, []);
 
   return (
     <ProtectedRoute>
-      <div className="flex flex-col h-screen max-h-screen overflow-hidden">
+      <div className="flex flex-col h-full max-h-screen overflow-hidden chat-container">
         {/* Header with animation */}
         <motion.div 
-          className="bg-gradient-to-r from-blue-50 to-blue-100 px-4 py-3.5 border-b border-blue-200 shadow-sm"
+          className="bg-gradient-to-r from-blue-50 to-blue-100 px-4 py-3.5 border-b border-blue-200 shadow-sm flex-shrink-0"
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
@@ -84,9 +107,9 @@ export default function ChatPage() {
           </motion.p>
         </motion.div>
         
-        {/* Chat container with flex-grow to fill remaining space */}
-        <div className="flex-1 overflow-hidden relative h-[calc(100%-80px)]">
-          <ChatInterface
+        {/* Chat container with flex-1 to fill remaining space */}
+        <div className="flex flex-col flex-1 overflow-hidden relative">
+        <ChatInterface
             initialSystemMessage={getAssistantSystemPrompt(undefined, userContextString)}
             initialWelcomeMessage="Hej! Jag är RealPal, din fastighetsassistent. Hur kan jag hjälpa dig idag?"
             userContext={userContextString}

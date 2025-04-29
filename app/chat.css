@@ -20,8 +20,11 @@
 
 /* Enhanced styling for the chat interface */
 .property-chat-container {
+  height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
-  scrollbar-color: rgba(203, 213, 224, 0.5) transparent;
 }
 
 .property-chat-container::-webkit-scrollbar {
@@ -45,6 +48,8 @@
 .chat-message img {
   border-radius: 8px;
   transition: transform 0.3s ease;
+  max-width: 100%; /* Ensure images don't overflow container */
+  height: auto; /* Maintain aspect ratio */
 }
 
 .chat-message img:hover {
@@ -101,7 +106,7 @@
 
 /* Make sure the chat footer is always fixed at the bottom */
 .chat-footer {
-  position: fixed;
+  position: sticky; /* Changed from fixed to sticky for better mobile behavior */
   bottom: 0;
   left: 0;
   right: 0;
@@ -117,7 +122,7 @@
 
 /* Ensure proper spacing at the bottom of the chat content */
 .chat-content {
-  padding-bottom: 180px !important; /* Added extra space to account for the fixed footer */
+  padding-bottom: 120px !important; /* Reduced padding for better mobile experience */
 }
 
 /* Mobile message styling */
@@ -130,6 +135,8 @@
   
   .chat-message table {
     font-size: 0.85rem;
+    display: block;
+    overflow-x: auto; /* Allow tables to scroll horizontally on mobile */
   }
   
   .chat-footer {
@@ -137,18 +144,38 @@
   }
   
   .chat-content {
-    padding-bottom: 160px !important;
+    padding-bottom: 100px !important;
+  }
+  
+  /* Prevent iOS bouncing/rubber-banding effect */
+  .chat-content {
+    overscroll-behavior-y: none;
+    -webkit-overflow-scrolling: touch;
   }
 }
 
 /* Fix for iOS Safari vh issue */
 @supports (-webkit-touch-callout: none) {
-  .chat-container {
+  .chat-container, .flex-col.h-screen {
     height: calc(var(--vh, 1vh) * 100);
+  }
+  
+  .property-chat-container {
+    max-height: calc(var(--vh, 1vh) * 100 - 180px);
   }
 }
 
 /* Ensure parent containers have proper positioning for fixed elements */
 .flex-1.overflow-hidden {
   position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Fix for nested scrolling issues */
+.flex-col.h-full {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }

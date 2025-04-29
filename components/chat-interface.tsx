@@ -459,9 +459,10 @@ Jag har sparat fastigheten. Du kan se den under "Sparade fastigheter". Vill du v
 
 
   return (
-    <div className="flex flex-col h-full relative">
+    <div className="flex flex-col h-full relative overflow-hidden">
       <div 
-        className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-4 property-chat-container chat-content"
+        className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-4 property-chat-container chat-content overflow-x-hidden"
+        style={{ WebkitOverflowScrolling: 'touch' }}
       >
         <AnimatePresence>
           {globalMessages.map((message) => (
@@ -676,7 +677,7 @@ Jag har sparat fastigheten. Du kan se den under "Sparade fastigheter". Vill du v
         </motion.div>
       )}
 
-      <form onSubmit={handleFormSubmit} className="chat-footer">
+      <div className="sticky bottom-0 left-0 w-full bg-white bg-opacity-95 backdrop-blur-sm border-t border-gray-200 p-2 sm:p-3 chat-footer">
         {/* File preview */}
         {files && files.length > 0 && (
           <motion.div 
@@ -713,32 +714,32 @@ Jag har sparat fastigheten. Du kan se den under "Sparade fastigheter". Vill du v
         )}
 
         <div className="flex gap-2 sm:gap-3">
-            <button
+          <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
             className="p-2.5 rounded-lg border bg-white text-gray-700 hover:bg-gray-50 transition-all shadow-sm flex-shrink-0"
             aria-label="Ladda upp bild"
             disabled={isLoading || isLoadingContext || processingUrl}
-            >
+          >
             <ImageIcon className="h-5 w-5" />
-            </button>
-            <input
+          </button>
+          <input
             type="file"
             ref={fileInputRef}
             onChange={handleFileChange}
             accept="image/*"
             className="hidden"
             disabled={isLoading || isLoadingContext || processingUrl}
-            />
-            <Input
+          />
+          <Input
             ref={inputRef}
             autoFocus={true}
             value={input}
             onChange={handleInputChange}
-            placeholder={processingUrl ? "Analyserar fastighetslänk..." : (files && files.length > 0 ? "Fråga om denna bild..." : "Skriv ett meddelande eller klistra in en Hemnet, Booli eller Bonava-länk...")}
+            placeholder={processingUrl ? "Analyserar Hemnet-länk..." : (files && files.length > 0 ? "Fråga om denna bild..." : "Skriv ett meddelande eller klistra in en Hemnet-länk...")}
             disabled={isLoading || isLoadingContext || processingUrl}
             className="flex-1 h-11 text-sm rounded-lg bg-white shadow-sm border-gray-200"
-            />
+          />
           <Button
             type="submit"
             disabled={isLoading || isLoadingContext || processingUrl || (!input.trim() && !files?.length)}
@@ -785,7 +786,7 @@ Jag har sparat fastigheten. Du kan se den under "Sparade fastigheter". Vill du v
         <p className="text-xs text-gray-500 text-center mt-2">
           Tips: Ladda upp bilder eller klistra in en Hemnet-länk för att analysera fastigheter
         </p>
-      </form>
+      </div>
 
       {isLoadingContext && (
         <motion.div 
