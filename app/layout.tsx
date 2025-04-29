@@ -1,29 +1,19 @@
-import type React from "react"
 import "./globals.css"
-// Import the mobile menu CSS
-import "./mobile-menu.css"
-import type { Metadata } from "next"
+import { ThemeProvider } from "@/components/theme-provider"
 import { Inter } from "next/font/google"
 import { AuthProvider } from "@/contexts/auth-context"
-import { ComparisonProvider } from "@/contexts/comparison-context"
-import { NavBar } from "@/components/nav-bar"
-import { ComparisonIndicator } from "@/components/comparison-indicator"
-import { ChatDrawer } from "@/components/chat-drawer"
-import { Toaster } from "@/components/ui/sonner"
 import { ChatProvider } from "@/contexts/chat-context"
-import { Analytics } from "@vercel/analytics/react"
+import { ComparisonProvider } from "@/contexts/comparison-context"
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+})
 
-export const metadata: Metadata = {
-  title: "RealPal",
-  description: "Spara och organisera fastigheter du är intresserad av",
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-  },
+export const metadata = {
+  title: "RealPal | Din fastighetsassistent",
+  description:
+    "En AI-driven assistent för att hjälpa dig hitta, analysera och jämföra fastigheter på ett enkelt sätt.",
 }
 
 export default function RootLayout({
@@ -32,19 +22,23 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="sv">
-      <body className={inter.className}>
-      <Analytics />
-
+    <html lang="sv" suppressHydrationWarning>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+      </head>
+      <body className={`${inter.variable} font-sans bg-slate-50`} style={{ height: '100%', overflow: 'hidden' }}>
         <AuthProvider>
-          <ComparisonProvider>
-            <ChatProvider>
-              <NavBar />
-              {children}
-              <ComparisonIndicator />
-              <Toaster />
-            </ChatProvider>
-          </ComparisonProvider>
+          <ChatProvider>
+            <ComparisonProvider>
+              <ThemeProvider
+                attribute="class"
+                defaultTheme="light"
+                enableSystem
+              >
+                <main className="h-screen overflow-hidden">{children}</main>
+              </ThemeProvider>
+            </ComparisonProvider>
+          </ChatProvider>
         </AuthProvider>
       </body>
     </html>

@@ -18,13 +18,35 @@
   }
 }
 
+/* Prevent scrollbars on html and body */
+html, body {
+  overflow: hidden;
+  height: 100%;
+  position: fixed;
+  width: 100%;
+}
+
+/* Make sure chat container takes full available space */
+.chat-container {
+  height: 100vh; /* Use viewport height */
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
 /* Enhanced styling for the chat interface */
 .property-chat-container {
-  height: 100%;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
+  scrollbar-color: rgba(203, 213, 224, 0.5) transparent;
+  -webkit-overflow-scrolling: touch; /* Improve iOS scrolling */
+  overscroll-behavior-y: contain; /* Prevent parent scrolling when this container is scrolled */
+  position: relative;
+  z-index: 0; /* Establish stacking context */
+  overflow-y: auto; /* Only allow vertical scrolling */
+  overflow-x: hidden; /* Hide horizontal scrolling */
+  flex: 1; /* Take all available space */
 }
 
 .property-chat-container::-webkit-scrollbar {
@@ -118,11 +140,12 @@
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.03);
   transition: transform 0.2s ease, opacity 0.2s ease;
   width: 100%;
+  flex-shrink: 0; /* Prevent footer from shrinking */
 }
 
 /* Ensure proper spacing at the bottom of the chat content */
 .chat-content {
-  padding-bottom: 120px !important; /* Reduced padding for better mobile experience */
+  padding-bottom: 120px !important; /* Enough space for the footer */
 }
 
 /* Mobile message styling */
@@ -165,17 +188,17 @@
   }
 }
 
-/* Ensure parent containers have proper positioning for fixed elements */
-.flex-1.overflow-hidden {
-  position: relative;
+/* Force single scrollbar on all devices */
+body > div, 
+#__next,
+#__next > div {
   height: 100%;
-  display: flex;
-  flex-direction: column;
+  overflow: hidden;
 }
 
-/* Fix for nested scrolling issues */
-.flex-col.h-full {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
+/* Ensure all parent containers don't scroll */
+.flex-1.relative,
+.flex-col.h-full,
+.overflow-hidden {
+  overflow: hidden !important;
 }

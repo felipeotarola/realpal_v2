@@ -50,38 +50,15 @@ export default function ChatPage() {
     window.addEventListener('resize', setVh);
     window.addEventListener('orientationchange', setVh);
     
-    // Special handling for iOS keyboard
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    if (isIOS) {
-      // When virtual keyboard appears, the window resizes
-      window.addEventListener('focusin', () => {
-        // Add a class to handle keyboard appearance
-        document.body.classList.add('keyboard-open');
-      });
-      
-      window.addEventListener('focusout', () => {
-        // Remove the class when keyboard disappears
-        document.body.classList.remove('keyboard-open');
-      });
-    }
-
     return () => {
       window.removeEventListener('resize', setVh);
       window.removeEventListener('orientationchange', setVh);
-      if (isIOS) {
-        window.removeEventListener('focusin', () => {
-          document.body.classList.add('keyboard-open');
-        });
-        window.removeEventListener('focusout', () => {
-          document.body.classList.remove('keyboard-open');
-        });
-      }
     };
   }, []);
 
   return (
     <ProtectedRoute>
-      <div className="flex flex-col h-full max-h-screen overflow-hidden chat-container">
+      <div className="flex flex-col h-screen max-h-screen overflow-hidden chat-container">
         {/* Header with animation */}
         <motion.div 
           className="bg-gradient-to-r from-blue-50 to-blue-100 px-4 py-3.5 border-b border-blue-200 shadow-sm flex-shrink-0"
@@ -108,8 +85,8 @@ export default function ChatPage() {
         </motion.div>
         
         {/* Chat container with flex-1 to fill remaining space */}
-        <div className="flex flex-col flex-1 overflow-hidden relative">
-        <ChatInterface
+        <div className="flex-1 relative flex flex-col overflow-hidden">
+          <ChatInterface
             initialSystemMessage={getAssistantSystemPrompt(undefined, userContextString)}
             initialWelcomeMessage="Hej! Jag är RealPal, din fastighetsassistent. Hur kan jag hjälpa dig idag?"
             userContext={userContextString}
