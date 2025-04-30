@@ -5,7 +5,7 @@ import { AuthProvider } from "@/contexts/auth-context"
 import { ChatProvider } from "@/contexts/chat-context"
 import { ComparisonProvider } from "@/contexts/comparison-context"
 import { NavBar } from "@/components/nav-bar"
-
+import { MenuBar } from "@/components/menu-bar"
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",

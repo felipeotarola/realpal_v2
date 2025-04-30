@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation"
 import { useChat } from "@/contexts/chat-context"
 import { AnimatePresence, motion } from "framer-motion"
 import { supabase } from "@/lib/supabaseClient"
+import Image from "next/image"
 
 interface ChatInterfaceProps {
   initialSystemMessage?: string
@@ -468,6 +469,21 @@ Jag har sparat fastigheten. Du kan se den under "Sparade fastigheter". Vill du v
                   ) : (
                     <div className="text-sm chat-message">
                       <MarkdownRenderer content={message.content} />
+                      
+                      {/* Render any image attachments */}
+                      {message.experimental_attachments?.filter(att => 
+                        att.contentType?.startsWith("image/")
+                      ).map((attachment, idx) => (
+                        <div key={`${message.id}-attachment-${idx}`} className="mt-2 rounded-md overflow-hidden border">
+                          <Image 
+                            src={attachment.url || ""}
+                            alt={attachment.name || `Image ${idx+1}`}
+                            width={300}
+                            height={300}
+                            className="max-w-full h-auto object-contain"
+                          />
+                        </div>
+                      ))}
                     </div>
                   )}
                 </motion.div>

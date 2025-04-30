@@ -41,8 +41,10 @@ export default function ChatInputForm({
   const inputRef = useRef<HTMLInputElement>(null)
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setFiles(e.target.files)
+    console.log("File input changed", e.target.files);
+    if (e.target.files && e.target.files.length > 0) {
+      console.log("Files selected:", e.target.files.length, "First file:", e.target.files[0].name);
+      setFiles(e.target.files);
     }
   }
 
@@ -59,6 +61,18 @@ export default function ChatInputForm({
     // Don't proceed if no input and no files
     if (!input.trim() && (!files || files.length === 0)) return
 
+    // First, check if the input contains a property URL that needs processing
+    if (input.trim()) {
+      const isPropertyUrl = await detectAndProcessPropertyUrl(input);
+      
+      // If we processed a property URL, don't continue with regular chat submission
+      if (isPropertyUrl) {
+        // Clear the input field
+        handleInputChange({ target: { value: "" } } as React.ChangeEvent<HTMLInputElement>);
+        return;
+      }
+    }
+
     // Submit the chat with files if available
     handleSubmit(e, {
       experimental_attachments: files,
@@ -72,6 +86,24 @@ export default function ChatInputForm({
 
     // Clear the files after sending
     clearFiles()
+  }
+
+  // This function needs to be defined or imported
+  const detectAndProcessPropertyUrl = async (inputText: string): Promise<boolean> => {
+    // This should be provided from the parent component or context
+    // For now, return false as a placeholder
+    return false;
+  }
+
+  const handleImageButtonClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Simply focus and click the input element
+    if (fileInputRef.current) {
+      fileInputRef.current.focus();
+      fileInputRef.current.click();
+    }
   }
 
   return (
@@ -132,6 +164,20 @@ export default function ChatInputForm({
         </motion.div>
       )}
 
+      {isLoadingContext && (
+        <motion.div 
+          className="text-xs text-center text-blue-500 py-2 fixed bottom-[180px] left-0 right-0 bg-white/70 backdrop-blur-sm"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="flex items-center justify-center">
+            <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+            Laddar din information...
+          </div>
+        </motion.div>
+      )}
+
       <form onSubmit={handleFormSubmit} 
         className="chat-footer fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 shadow-top"
       >
@@ -173,8 +219,8 @@ export default function ChatInputForm({
         <div className="flex gap-2 sm:gap-3">
           <button
             type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="p-2.5 rounded-lg border bg-white text-gray-700 hover:bg-gray-50 transition-all shadow-sm flex-shrink-0"
+            onClick={handleImageButtonClick}
+            className="p-2.5 rounded-lg border bg-white text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-all shadow-sm flex-shrink-0"
             aria-label="Ladda upp bild"
             disabled={isLoading || isLoadingContext || processingUrl}
           >
@@ -244,20 +290,6 @@ export default function ChatInputForm({
           Tips: Ladda upp bilder eller klistra in en Hemnet-länk för att analysera fastigheter
         </p>
       </form>
-
-      {isLoadingContext && (
-        <motion.div 
-          className="text-xs text-center text-blue-500 py-2 fixed bottom-[180px] left-0 right-0 bg-white/70 backdrop-blur-sm"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5 }}
-        >
-          <div className="flex items-center justify-center">
-            <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
-            Laddar din information...
-          </div>
-        </motion.div>
-      )}
     </>
   )
 }

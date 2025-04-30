@@ -4,11 +4,23 @@ import type React from "react"
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 import type { Message } from "ai"
 
+interface Attachment {
+  name?: string;
+  url: string;
+  contentType?: string;
+  type?: string;
+}
+
+// Extend the Message type to include file attachments
+interface ExtendedMessage extends Message {
+  experimental_attachments?: Attachment[];
+}
+
 interface ChatContextType {
-  messages: Message[]
-  setMessages: React.Dispatch<React.SetStateAction<Message[]>>
-  input: string
-  setInput: React.Dispatch<React.SetStateAction<string>>
+  messages: ExtendedMessage[];
+  setMessages: React.Dispatch<React.SetStateAction<ExtendedMessage[]>>;
+  input: string;
+  setInput: React.Dispatch<React.SetStateAction<string>>;
   isOpen: boolean
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>
   threadId: string | null
@@ -20,7 +32,7 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined)
 
 export function ChatProvider({ children }: { children: ReactNode }) {
   // Load initial state from localStorage if available
-  const [messages, setMessages] = useState<Message[]>(() => {
+  const [messages, setMessages] = useState<ExtendedMessage[]>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("chatMessages")
       if (saved) {
@@ -46,7 +58,19 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   // Save messages to localStorage when they change
   useEffect(() => {
     if (typeof window !== "undefined" && messages.length > 0) {
-      localStorage.setItem("chatMessages", JSON.stringify(messages))
+      // Filter out any messages with file URLs that might not be valid after reload
+      // We only store text messages
+      const messagesToStore = messages.map(message => {
+        // If the message has attachments, we need to remove them before storing
+        // since URLs created by URL.createObjectURL() are not persistent
+        if (message.experimental_attachments) {
+          const { experimental_attachments, ...rest } = message;
+          return rest;
+        }
+        return message;
+      });
+      
+      localStorage.setItem("chatMessages", JSON.stringify(messagesToStore))
     }
   }, [messages])
 
@@ -93,3 +117,7 @@ export function useChat() {
   }
   return context
 }
+
+
+
+

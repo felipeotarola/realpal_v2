@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { motion } from "framer-motion"
 import { ProtectedRoute } from "@/components/protected-route"
 import ChatInterface from "@/components/chat-interface"
@@ -8,7 +8,8 @@ import ChatInputForm from "@/components/chat-input-form"
 import { getAssistantSystemPrompt } from "@/lib/ai-assistant-prompt"
 import { useAuth } from "@/contexts/auth-context"
 import { useChat } from "@/contexts/chat-context"
-import { useChat as useVercelChat } from "ai/react"
+import { useChat as useVercelChat } from "@ai-sdk/react"
+
 import { fetchUserContext, formatUserContextForPrompt } from "@/lib/user-context-fetcher"
 import { supabase } from "@/lib/supabaseClient"
 
@@ -19,6 +20,7 @@ export default function ChatPage() {
   const [files, setFiles] = useState<FileList | undefined>(undefined)
   const [processingUrl, setProcessingUrl] = useState(false)
   const [processingError, setProcessingError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Use global chat context
   const { messages: globalMessages, setMessages: setGlobalMessages, threadId, setThreadId } = useChat()
@@ -256,6 +258,12 @@ Jag har sparat fastigheten. Du kan se den under "Sparade fastigheter". Vill du v
       id: Date.now().toString(),
       role: "user" as const,
       content: input,
+      experimental_attachments: files ? Array.from(files).map(file => ({
+        name: file.name,
+        type: file.type,
+        content_type: file.type,
+        url: URL.createObjectURL(file),
+      })) : undefined,
     }
     setGlobalMessages((current) => [...current, userMessage])
 
@@ -269,11 +277,18 @@ Jag har sparat fastigheten. Du kan se den under "Sparade fastigheter". Vill du v
         },
       },
     })
+
+    // Clear files after submission
+    setFiles(undefined)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
   }
 
   return (
     <ProtectedRoute>
-<div>       {/* Header with animation */}
+      <div className="flex flex-col h-full">       
+        {/* Header with animation */}
         <motion.div 
           className="bg-gradient-to-r from-blue-50 to-blue-100 px-4 py-3.5 border-b border-blue-200 shadow-sm flex-shrink-0"
           initial={{ opacity: 0, y: -10 }}
@@ -299,31 +314,31 @@ Jag har sparat fastigheten. Du kan se den under "Sparade fastigheter". Vill du v
         </motion.div>
         
         {/* Chat interface component for displaying messages */}
-        <div className="property-chat-container">
+        <div className="property-chat-container flex-1 overflow-hidden">
           <ChatInterface
             initialSystemMessage={systemMessage}
             initialWelcomeMessage="Hej! Jag är RealPal, din fastighetsassistent. Hur kan jag hjälpa dig idag?"
             userContext={userContextString}
           />
         </div>
-        
-        {/* Input form as a separate component */}
       </div>
-        <ChatInputForm
-          input={input}
-          handleInputChange={handleInputChange}
-          handleSubmit={handleFormSubmit}
-          handlePropertyQuery={handlePropertyQuery}
-          isLoading={isLoading}
-          isLoadingContext={isLoadingContext}
-          processingUrl={processingUrl}
-          processingError={processingError}
-          setProcessingError={setProcessingError}
-          systemMessage={systemMessage}
-          threadId={threadId}
-          files={files}
-          setFiles={setFiles}
-        />
+      
+      {/* Input form as a separate component */}
+      <ChatInputForm
+        input={input}
+        handleInputChange={handleInputChange}
+        handleSubmit={handleFormSubmit}
+        handlePropertyQuery={handlePropertyQuery}
+        isLoading={isLoading}
+        isLoadingContext={isLoadingContext}
+        processingUrl={processingUrl}
+        processingError={processingError}
+        setProcessingError={setProcessingError}
+        systemMessage={systemMessage}
+        threadId={threadId}
+        files={files}
+        setFiles={setFiles}
+      />
     </ProtectedRoute>
   )
 }
